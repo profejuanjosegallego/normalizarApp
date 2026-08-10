@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <rect width="32" height="32" rx="7" fill="#3b4fd8" />
+  <!-- Tres discos separados: una tabla descompuesta en varias, que es de lo que trata el taller. -->
+  <g fill="#ffffff">
+    <ellipse cx="16" cy="8" rx="9.5" ry="2.9" />
+    <ellipse cx="16" cy="16" rx="9.5" ry="2.9" />
+    <ellipse cx="16" cy="24" rx="9.5" ry="2.9" />
+  </g>
+</svg>
