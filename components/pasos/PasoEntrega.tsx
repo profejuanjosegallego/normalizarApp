@@ -7,6 +7,7 @@ import { columnasPK } from "@/lib/modelo";
 import { generarSQL } from "@/lib/sql";
 import { PASOS, type FormaNormal } from "@/lib/tipos";
 import { progresoGlobal, validarPaso } from "@/lib/validaciones";
+import DiagramaER from "../DiagramaER";
 import EditorTabla from "../EditorTabla";
 import type { PropsPaso } from "../Taller";
 import { Aviso, BotonCopiar, ListaChequeos, Seccion } from "../ui";
@@ -179,6 +180,21 @@ export default function PasoEntrega({ trabajo, actualizar }: PropsPaso) {
             );
           })}
         </div>
+      </Seccion>
+
+      <Seccion
+        titulo="Diagrama entidad-relacion"
+        descripcion="Tu modelo final. Arrastra las tablas para acomodarlo antes de imprimir o entregar."
+      >
+        <DiagramaER
+          modelo={trabajo.modelo}
+          posiciones={trabajo.posiciones}
+          onMover={(id, posicion) =>
+            actualizar((t) => ({ ...t, posiciones: { ...t.posiciones, [id]: posicion } }))
+          }
+          onReorganizar={(posiciones) => actualizar((t) => ({ ...t, posiciones }))}
+          altoMaximo="80vh"
+        />
       </Seccion>
 
       <Seccion titulo="Modelo final" descripcion="Estructura y registros tal como quedaron.">

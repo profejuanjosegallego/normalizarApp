@@ -30,7 +30,10 @@ export default function PaginaEjercicio() {
 
     const guardado = cargarTrabajo(ejercicio.id);
     // Si el docente reedito el enunciado, se conserva el avance y se refresca el texto.
-    const trabajo = guardado ? { ...guardado, ejercicio } : crearTrabajo(ejercicio);
+    // La base de `crearTrabajo` rellena campos que falten de versiones anteriores.
+    const trabajo: Trabajo = guardado
+      ? { ...crearTrabajo(ejercicio), ...guardado, ejercicio, posiciones: guardado.posiciones ?? {} }
+      : crearTrabajo(ejercicio);
     setEstado({ fase: "listo", trabajo });
   }, []);
 

@@ -6,7 +6,8 @@ import { guardarTrabajo } from "@/lib/almacenamiento";
 import { clonar } from "@/lib/modelo";
 import { PASOS, type FormaNormal, type Trabajo } from "@/lib/tipos";
 import { progresoGlobal, validarPaso } from "@/lib/validaciones";
-import { ListaChequeos } from "./ui";
+import DiagramaER from "./DiagramaER";
+import { Dialogo, ListaChequeos } from "./ui";
 import PasoEnunciado from "./pasos/PasoEnunciado";
 import PasoEntidades from "./pasos/PasoEntidades";
 import PasoTablas from "./pasos/PasoTablas";
@@ -32,6 +33,7 @@ export default function Taller({ inicial }: { inicial: Trabajo }) {
   const [trabajo, setTrabajo] = useState<Trabajo>(inicial);
   const [guardado, setGuardado] = useState<"listo" | "guardando">("listo");
   const [enunciadoAbierto, setEnunciadoAbierto] = useState(true);
+  const [diagramaAbierto, setDiagramaAbierto] = useState(false);
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const actualizar = useCallback((mutador: (t: Trabajo) => Trabajo) => {
@@ -108,6 +110,15 @@ export default function Taller({ inicial }: { inicial: Trabajo }) {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              type="button"
+              className="btn btn-mini"
+              onClick={() => setDiagramaAbierto(true)}
+              disabled={trabajo.modelo.length === 0}
+              title="Ver el diagrama entidad-relacion de tu modelo actual"
+            >
+              Ver diagrama
+            </button>
             <div className="hidden sm:block">
               <div className="suave mb-1 text-right text-[11px] font-semibold">
                 {progreso.hechos}/{progreso.total} verificaciones
@@ -225,6 +236,23 @@ export default function Taller({ inicial }: { inicial: Trabajo }) {
           ) : null}
         </div>
       </div>
+
+      <Dialogo
+        abierto={diagramaAbierto}
+        titulo="Diagrama entidad-relacion"
+        onCerrar={() => setDiagramaAbierto(false)}
+        ancho="max-w-6xl"
+      >
+        <DiagramaER
+          modelo={trabajo.modelo}
+          posiciones={trabajo.posiciones}
+          onMover={(id, posicion) =>
+            actualizar((t) => ({ ...t, posiciones: { ...t.posiciones, [id]: posicion } }))
+          }
+          onReorganizar={(posiciones) => actualizar((t) => ({ ...t, posiciones }))}
+          altoMaximo="65vh"
+        />
+      </Dialogo>
     </div>
   );
 }

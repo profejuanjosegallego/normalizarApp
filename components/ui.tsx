@@ -182,12 +182,15 @@ export function Dialogo({
   onCerrar,
   children,
   pie,
+  ancho = "max-w-xl",
 }: {
   abierto: boolean;
   titulo: string;
   onCerrar: () => void;
   children: React.ReactNode;
   pie?: React.ReactNode;
+  /** Clase de ancho maximo, por ejemplo "max-w-6xl" para el diagrama. */
+  ancho?: string;
 }) {
   useEffect(() => {
     if (!abierto) return;
@@ -208,7 +211,7 @@ export function Dialogo({
       role="presentation"
     >
       <div
-        className="tarjeta max-h-[85vh] w-full max-w-xl overflow-y-auto p-5"
+        className={`tarjeta max-h-[90vh] w-full ${ancho} overflow-y-auto p-5`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"

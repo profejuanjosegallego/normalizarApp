@@ -13,6 +13,7 @@ export function crearTrabajo(ejercicio: Ejercicio): Trabajo {
     snapshots: {},
     bitacora: { descomposiciones: [], gruposResueltos: [], transitivasResueltas: [] },
     declaraciones: { sinGruposRepeticion: false, sinTransitivas: false },
+    posiciones: {},
     actualizado: "",
   };
 }
@@ -35,5 +36,6 @@ export function validarTrabajoImportado(dato: unknown): Trabajo | null {
       sinGruposRepeticion: t.declaraciones?.sinGruposRepeticion ?? false,
       sinTransitivas: t.declaraciones?.sinTransitivas ?? false,
     },
+    posiciones: t.posiciones ?? {},
   } as Trabajo;
 }

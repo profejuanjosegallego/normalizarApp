@@ -22,6 +22,12 @@
   --error: #b02a37;
   --error-suave: #fbe4e6;
   --sombra: 0 1px 2px rgba(16, 20, 40, 0.06), 0 8px 24px rgba(16, 20, 40, 0.06);
+
+  /* Encabezados del diagrama: se mantienen oscuros en ambos temas porque
+     siempre llevan texto blanco encima. */
+  --dg-principal: #3b4fd8;
+  --dg-derivada: #157a52;
+  --dg-puente: #965e00;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -44,6 +50,10 @@
     --error: #ff8a94;
     --error-suave: #3a1e23;
     --sombra: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
+
+    --dg-principal: #4657cf;
+    --dg-derivada: #18795a;
+    --dg-puente: #8a5f14;
   }
 }
 
@@ -267,6 +277,12 @@ body {
   .tarjeta {
     box-shadow: none;
     break-inside: avoid;
+  }
+
+  /* El diagrama debe salir completo, no recortado por su area de scroll. */
+  .lienzo-diagrama {
+    max-height: none !important;
+    overflow: visible !important;
   }
 
   body {

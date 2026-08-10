@@ -146,6 +146,9 @@ export const PASOS = [
   "Entrega",
 ] as const;
 
+/** Posicion de cada tabla en el diagrama, arrastrada por el estudiante. */
+export type Posicion = { x: number; y: number };
+
 export type Trabajo = {
   version: 1;
   ejercicio: Ejercicio;
@@ -161,5 +164,7 @@ export type Trabajo = {
   snapshots: Partial<Record<FormaNormal, Tabla[]>>;
   bitacora: Bitacora;
   declaraciones: Declaraciones;
+  /** tablaId -> posicion en el diagrama. Vacio = distribucion automatica. */
+  posiciones: Record<string, Posicion>;
   actualizado: string;
 };
