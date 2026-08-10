@@ -1,0 +1,275 @@
+@import "tailwindcss";
+
+/* --------------------------------------------------------------------------
+   Paleta semantica. Un solo lugar controla claro/oscuro para toda la app.
+   -------------------------------------------------------------------------- */
+:root {
+  --fondo: #f6f7fb;
+  --superficie: #ffffff;
+  --superficie-2: #f0f2f8;
+  --superficie-3: #e6e9f2;
+  --borde: #d9dde8;
+  --borde-fuerte: #b9c0d2;
+  --texto: #16192a;
+  --texto-suave: #5d6480;
+  --acento: #3b4fd8;
+  --acento-texto: #ffffff;
+  --acento-suave: #e6e9fd;
+  --ok: #157a52;
+  --ok-suave: #dff4ea;
+  --alerta: #9a6100;
+  --alerta-suave: #fdf0d5;
+  --error: #b02a37;
+  --error-suave: #fbe4e6;
+  --sombra: 0 1px 2px rgba(16, 20, 40, 0.06), 0 8px 24px rgba(16, 20, 40, 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fondo: #0e1018;
+    --superficie: #171a26;
+    --superficie-2: #1e2231;
+    --superficie-3: #262b3d;
+    --borde: #2e3345;
+    --borde-fuerte: #434a63;
+    --texto: #e8eaf2;
+    --texto-suave: #9aa2bd;
+    --acento: #7b8cff;
+    --acento-texto: #0e1018;
+    --acento-suave: #232945;
+    --ok: #56d6a0;
+    --ok-suave: #16302a;
+    --alerta: #e5b25a;
+    --alerta-suave: #322a17;
+    --error: #ff8a94;
+    --error-suave: #3a1e23;
+    --sombra: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
+  }
+}
+
+html,
+body {
+  background: var(--fondo);
+  color: var(--texto);
+}
+
+body {
+  font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  border-color: var(--borde);
+}
+
+::selection {
+  background: var(--acento-suave);
+}
+
+@layer components {
+  .tarjeta {
+    background: var(--superficie);
+    border: 1px solid var(--borde);
+    border-radius: 14px;
+    box-shadow: var(--sombra);
+  }
+
+  .tarjeta-plana {
+    background: var(--superficie-2);
+    border: 1px solid var(--borde);
+    border-radius: 12px;
+  }
+
+  .titulo-seccion {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--texto-suave);
+  }
+
+  .suave {
+    color: var(--texto-suave);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.9rem;
+    border-radius: 9px;
+    border: 1px solid var(--borde-fuerte);
+    background: var(--superficie);
+    color: var(--texto);
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: background 120ms ease, border-color 120ms ease, transform 60ms ease;
+  }
+
+  .btn:hover:not(:disabled) {
+    background: var(--superficie-2);
+  }
+
+  .btn:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  .btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .btn-primario {
+    background: var(--acento);
+    border-color: var(--acento);
+    color: var(--acento-texto);
+  }
+
+  .btn-primario:hover:not(:disabled) {
+    background: var(--acento);
+    filter: brightness(1.08);
+  }
+
+  .btn-peligro {
+    color: var(--error);
+    border-color: var(--borde);
+  }
+
+  .btn-mini {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    border-radius: 7px;
+  }
+
+  .campo {
+    width: 100%;
+    background: var(--superficie);
+    border: 1px solid var(--borde-fuerte);
+    border-radius: 9px;
+    padding: 0.45rem 0.65rem;
+    font-size: 0.875rem;
+    color: var(--texto);
+    outline: none;
+  }
+
+  .campo:focus {
+    border-color: var(--acento);
+    box-shadow: 0 0 0 3px var(--acento-suave);
+  }
+
+  .campo::placeholder {
+    color: var(--texto-suave);
+    opacity: 0.75;
+  }
+
+  .etiqueta {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--texto-suave);
+    margin-bottom: 0.25rem;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.12rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    border: 1px solid var(--borde);
+    background: var(--superficie-2);
+    color: var(--texto-suave);
+    white-space: nowrap;
+  }
+
+  .chip-pk {
+    background: var(--alerta-suave);
+    color: var(--alerta);
+    border-color: transparent;
+  }
+
+  .chip-fk {
+    background: var(--acento-suave);
+    color: var(--acento);
+    border-color: transparent;
+  }
+
+  .chip-ok {
+    background: var(--ok-suave);
+    color: var(--ok);
+    border-color: transparent;
+  }
+
+  .chip-error {
+    background: var(--error-suave);
+    color: var(--error);
+    border-color: transparent;
+  }
+
+  /* Celdas de la rejilla de datos */
+  .celda {
+    background: transparent;
+    border: 0;
+    outline: none;
+    padding: 0.35rem 0.5rem;
+    font-size: 0.82rem;
+    color: var(--texto);
+    width: 100%;
+    min-width: 7rem;
+  }
+
+  .celda:focus {
+    background: var(--acento-suave);
+    box-shadow: inset 0 0 0 2px var(--acento);
+    border-radius: 4px;
+  }
+
+  .rejilla th,
+  .rejilla td {
+    border: 1px solid var(--borde);
+  }
+
+  .rejilla thead th {
+    background: var(--superficie-2);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .prosa {
+    white-space: pre-wrap;
+    line-height: 1.65;
+    font-size: 0.93rem;
+  }
+}
+
+/* Impresion / guardar como PDF */
+@media print {
+  :root {
+    --fondo: #ffffff;
+    --superficie: #ffffff;
+    --superficie-2: #ffffff;
+    --borde: #999999;
+    --texto: #000000;
+    --texto-suave: #333333;
+    --sombra: none;
+  }
+
+  .no-imprimir {
+    display: none !important;
+  }
+
+  .tarjeta {
+    box-shadow: none;
+    break-inside: avoid;
+  }
+
+  body {
+    background: #ffffff;
+  }
+}

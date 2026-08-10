@@ -1,0 +1,29 @@
+# Dependencias
+/node_modules
+/.pnp
+.pnp.*
+
+# Compilacion de Next.js
+/.next/
+/out/
+/build
+next-env.d.ts
+*.tsbuildinfo
+
+# Vercel
+.vercel
+
+# Variables de entorno
+.env
+.env*.local
+
+# Registros y depuracion
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
