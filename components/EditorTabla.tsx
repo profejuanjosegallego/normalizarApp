@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { nuevaColumna, nuevaFila } from "@/lib/modelo";
 import type { Columna, Tabla } from "@/lib/tipos";
 
@@ -42,6 +43,27 @@ export default function EditorTabla({
   colorEncabezado,
   pie,
 }: Props) {
+  // Reordenar columnas arrastrando el asa del encabezado. `sobre` marca la
+  // columna donde se soltaria, para pintar la guia.
+  const [arrastrada, setArrastrada] = useState<number | null>(null);
+  const [sobre, setSobre] = useState<number | null>(null);
+  const reordenable = editableEstructura && !soloLectura && tabla.columnas.length > 1;
+
+  function moverColumna(desde: number, hasta: number) {
+    if (desde === hasta || desde < 0 || hasta < 0) return;
+    if (desde >= tabla.columnas.length || hasta >= tabla.columnas.length) return;
+    const columnas = [...tabla.columnas];
+    const [movida] = columnas.splice(desde, 1);
+    columnas.splice(hasta, 0, movida);
+    onCambio({ ...tabla, columnas });
+  }
+
+  function soltar(destino: number) {
+    if (arrastrada !== null) moverColumna(arrastrada, destino);
+    setArrastrada(null);
+    setSobre(null);
+  }
+
   function actualizarColumna(id: string, parche: Partial<Columna>) {
     onCambio({
       ...tabla,
@@ -104,7 +126,7 @@ export default function EditorTabla({
   const etiquetaTipo: Record<Tabla["tipo"], string> = {
     principal: "principal",
     derivada: "derivada",
-    puente: "tabla puente",
+    puente: "tabla de transición",
   };
 
   return (
@@ -155,10 +177,10 @@ export default function EditorTabla({
 
       {tabla.columnas.length === 0 ? (
         <div className="px-4 py-8 text-center">
-          <p className="text-sm font-semibold">Esta tabla todavia no tiene atributos</p>
+          <p className="text-sm font-semibold">Esta tabla todavía no tiene atributos</p>
           <p className="suave mx-auto mt-1 max-w-md text-xs leading-relaxed">
-            Decide tu que columnas necesita, incluido el identificador. Usa “+ Columna”, escribe el
-            nombre y marca cual sera la clave primaria.
+            Decide tú qué columnas necesita, incluido el identificador. Usa “+ Columna”, escribe el
+            nombre y marca cuál será la clave primaria.
           </p>
           {editableEstructura && !soloLectura ? (
             <button type="button" className="btn btn-primario mt-3" onClick={agregarColumna}>
@@ -171,14 +193,56 @@ export default function EditorTabla({
         <table className="rejilla w-full border-collapse">
           <thead>
             <tr>
-              {tabla.columnas.map((col) => (
+              {tabla.columnas.map((col, indice) => (
                 <th
                   key={col.id}
                   className="p-2 align-top"
-                  style={colorEncabezado ? { background: colorEncabezado(col) } : undefined}
+                  style={{
+                    ...(colorEncabezado ? { background: colorEncabezado(col) } : {}),
+                    ...(sobre === indice && arrastrada !== null && arrastrada !== indice
+                      ? { boxShadow: "inset 3px 0 0 var(--acento)" }
+                      : {}),
+                    ...(arrastrada === indice ? { opacity: 0.45 } : {}),
+                  }}
+                  onDragOver={
+                    reordenable
+                      ? (e) => {
+                          e.preventDefault();
+                          setSobre(indice);
+                        }
+                      : undefined
+                  }
+                  onDrop={
+                    reordenable
+                      ? (e) => {
+                          e.preventDefault();
+                          soltar(indice);
+                        }
+                      : undefined
+                  }
                 >
                   <div className="flex min-w-[9rem] flex-col gap-1.5">
                     <div className="flex flex-wrap items-center gap-1">
+                      {reordenable ? (
+                        <span
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.effectAllowed = "move";
+                            e.dataTransfer.setData("text/plain", String(indice));
+                            setArrastrada(indice);
+                          }}
+                          onDragEnd={() => {
+                            setArrastrada(null);
+                            setSobre(null);
+                          }}
+                          className="cursor-grab select-none px-0.5 text-xs leading-none active:cursor-grabbing"
+                          style={{ color: "var(--texto-suave)" }}
+                          title="Arrastra para cambiar el orden de la columna"
+                          aria-hidden
+                        >
+                          ⠿
+                        </span>
+                      ) : null}
                       {col.esPK ? <span className="chip chip-pk">PK</span> : null}
                       {col.esFK ? (
                         <span className="chip chip-fk" title={`Referencia a ${nombreDestino(col)}`}>
@@ -209,6 +273,31 @@ export default function EditorTabla({
                           aria-label="Tipo de dato"
                         />
                         <div className="flex flex-wrap gap-1">
+                          {reordenable ? (
+                            <>
+                              {/* Alternativa al arrastre: teclado y pantallas tactiles. */}
+                              <button
+                                type="button"
+                                className="btn btn-mini"
+                                onClick={() => moverColumna(indice, indice - 1)}
+                                disabled={indice === 0}
+                                aria-label={`Mover ${col.nombre} a la izquierda`}
+                                title="Mover a la izquierda"
+                              >
+                                ‹
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-mini"
+                                onClick={() => moverColumna(indice, indice + 1)}
+                                disabled={indice === tabla.columnas.length - 1}
+                                aria-label={`Mover ${col.nombre} a la derecha`}
+                                title="Mover a la derecha"
+                              >
+                                ›
+                              </button>
+                            </>
+                          ) : null}
                           <button
                             type="button"
                             className="btn btn-mini"

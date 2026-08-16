@@ -6,6 +6,7 @@ import { guardarTrabajo } from "@/lib/almacenamiento";
 import { clonar } from "@/lib/modelo";
 import { PASOS, type FormaNormal, type Trabajo } from "@/lib/tipos";
 import { progresoGlobal, validarPaso } from "@/lib/validaciones";
+import BotonesImagen from "./BotonesImagen";
 import DiagramaER from "./DiagramaER";
 import { Dialogo, ListaChequeos } from "./ui";
 import PasoEnunciado from "./pasos/PasoEnunciado";
@@ -22,6 +23,18 @@ const SNAPSHOT_POR_PASO: Record<number, FormaNormal> = {
   3: "1fn",
   4: "2fn",
   5: "3fn",
+};
+
+/** Que se puede descargar como imagen en cada paso, para el informe escrito. */
+const IMAGEN_POR_PASO: Record<
+  number,
+  { paso: string; clave: string; variante: "entidades" | "modelo" }
+> = {
+  1: { paso: "Entidades y relaciones", clave: "entidades", variante: "entidades" },
+  2: { paso: "Tablas y registros · sin normalizar", clave: "unf", variante: "modelo" },
+  3: { paso: "1FN · Primera forma normal", clave: "1fn", variante: "modelo" },
+  4: { paso: "2FN · Segunda forma normal", clave: "2fn", variante: "modelo" },
+  5: { paso: "3FN · Tercera forma normal", clave: "3fn", variante: "modelo" },
 };
 
 export type PropsPaso = {
@@ -83,6 +96,7 @@ export default function Taller({ inicial }: { inicial: Trabajo }) {
   }
 
   const props: PropsPaso = { trabajo, actualizar };
+  const imagen = IMAGEN_POR_PASO[trabajo.pasoActual];
 
   const contenido = [
     <PasoEnunciado key="0" {...props} />,
@@ -166,7 +180,28 @@ export default function Taller({ inicial }: { inicial: Trabajo }) {
       </header>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <main className="min-w-0 space-y-5">{contenido}</main>
+        <main className="min-w-0 space-y-5">
+          {contenido}
+
+          {imagen ? (
+            <section className="tarjeta no-imprimir flex flex-wrap items-center gap-x-4 gap-y-2 p-4">
+              <div>
+                <p className="titulo-seccion">Para tu informe</p>
+                <p className="suave mt-0.5 text-xs">
+                  Descarga como imagen lo que llevas en este paso y pégalo en tu documento.
+                </p>
+              </div>
+              <div className="ml-auto">
+                <BotonesImagen
+                  trabajo={trabajo}
+                  paso={imagen.paso}
+                  clave={imagen.clave}
+                  variante={imagen.variante}
+                />
+              </div>
+            </section>
+          ) : null}
+        </main>
 
         <aside className="no-imprimir space-y-4 lg:sticky lg:top-5 lg:self-start">
           <div className="tarjeta overflow-hidden">
@@ -239,7 +274,7 @@ export default function Taller({ inicial }: { inicial: Trabajo }) {
 
       <Dialogo
         abierto={diagramaAbierto}
-        titulo="Diagrama entidad-relacion"
+        titulo="Diagrama entidad-relación"
         onCerrar={() => setDiagramaAbierto(false)}
         ancho="max-w-6xl"
       >

@@ -57,3 +57,56 @@ export function extraerCodigo(entrada: string): string {
   if (corte >= 0) return texto.slice(corte + 3);
   return texto;
 }
+
+/* --------------------------------------------------------------------------
+ * Codigos cortos
+ *
+ * El enunciado tambien se puede publicar en Supabase y quedar detras de un
+ * codigo de 6 caracteres que el docente dicta en clase. Es el mismo alfabeto
+ * del esquema SQL: sin I, sin O, sin 0 y sin 1, para que no se confundan al
+ * copiarlos del tablero.
+ * ----------------------------------------------------------------------- */
+
+export const LARGO_CODIGO_CORTO = 6;
+
+const ALFABETO_CORTO = /^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$/;
+
+/** Quita espacios, guiones y acomoda a mayusculas: "k7q-m3p" -> "K7QM3P". */
+export function normalizarCodigoCorto(entrada: string): string {
+  return entrada.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+}
+
+export function esCodigoCorto(texto: string): boolean {
+  return ALFABETO_CORTO.test(texto);
+}
+
+export type EntradaEjercicio =
+  | { tipo: "corto"; codigo: string }
+  | { tipo: "largo"; codigo: string };
+
+/**
+ * Interpreta lo que el estudiante pego en el inicio: puede ser un codigo de 6
+ * caracteres, un enlace `#c=` o `#e=`, o el codigo largo suelto.
+ */
+export function interpretarEntrada(entrada: string): EntradaEjercicio | null {
+  const texto = entrada.trim();
+  if (!texto) return null;
+
+  const corteCorto = texto.lastIndexOf("#c=");
+  if (corteCorto >= 0) {
+    const codigo = normalizarCodigoCorto(texto.slice(corteCorto + 3));
+    return esCodigoCorto(codigo) ? { tipo: "corto", codigo } : null;
+  }
+
+  const corteLargo = texto.lastIndexOf("#e=");
+  if (corteLargo >= 0) {
+    const codigo = texto.slice(corteLargo + 3).trim();
+    return codigo ? { tipo: "largo", codigo } : null;
+  }
+
+  // Sin enlace: si tiene la forma de un codigo corto, se asume que lo es.
+  const posibleCorto = normalizarCodigoCorto(texto);
+  if (esCodigoCorto(posibleCorto)) return { tipo: "corto", codigo: posibleCorto };
+
+  return { tipo: "largo", codigo: texto };
+}

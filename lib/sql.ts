@@ -39,7 +39,7 @@ function escapar(valor: string): string {
 export function generarSQL(modelo: Tabla[]): string {
   const ordenadas = ordenarPorDependencia(modelo);
   const bloques: string[] = [
-    "-- Script generado por el Taller de Normalizacion",
+    "-- Script generado por el Taller de Normalización",
     "-- Dialecto: MySQL / MariaDB",
     "",
   ];

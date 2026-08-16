@@ -6,13 +6,13 @@ export type Chequeo = {
   id: string;
   etiqueta: string;
   ok: boolean;
-  /** Que falta exactamente. Se muestra solo cuando `ok` es falso. */
+  /** Qué falta exactamente. Se muestra solo cuando `ok` es falso. */
   detalle?: string;
 };
 
 function lista(items: string[], max = 6): string {
   if (items.length <= max) return items.join(", ");
-  return `${items.slice(0, max).join(", ")} y ${items.length - max} mas`;
+  return `${items.slice(0, max).join(", ")} y ${items.length - max} más`;
 }
 
 function duplicados(nombres: string[]): string[] {
@@ -47,7 +47,7 @@ function validarDatos(t: Trabajo): Chequeo[] {
     },
     {
       id: "leido",
-      etiqueta: "Leiste el enunciado completo",
+      etiqueta: "Leíste el enunciado completo",
       ok: t.ejercicio.enunciado.trim().length > 0,
       detalle: "Este ejercicio no tiene enunciado cargado.",
     },
@@ -64,7 +64,7 @@ function validarEntidades(t: Trabajo): Chequeo[] {
       id: "hay-entidades",
       etiqueta: "Identificaste al menos una entidad",
       ok: t.entidades.length >= 1,
-      detalle: "Extrae del enunciado los sustantivos que se convertiran en tablas.",
+      detalle: "Extrae del enunciado los sustantivos que se convertirán en tablas.",
     },
     {
       id: "entidades-con-nombre",
@@ -82,13 +82,13 @@ function validarEntidades(t: Trabajo): Chequeo[] {
       id: "hay-relaciones",
       etiqueta: "Relacionaste las entidades",
       ok: t.entidades.length < 2 || t.relaciones.length >= 1,
-      detalle: "Con dos o mas entidades debes declarar al menos una relacion.",
+      detalle: "Con dos o más entidades debes declarar al menos una relación.",
     },
     {
       id: "relaciones-completas",
       etiqueta: "Todas las relaciones tienen origen y destino",
       ok: relacionesIncompletas === 0,
-      detalle: `${relacionesIncompletas} relacion(es) incompleta(s).`,
+      detalle: `${relacionesIncompletas} relación(es) incompleta(s).`,
     },
   ];
 }
@@ -114,7 +114,7 @@ function validarTablas(t: Trabajo): Chequeo[] {
       id: "tablas-con-atributos",
       etiqueta: "Cada tabla tiene sus atributos definidos",
       ok: sinColumnas.length === 0,
-      detalle: `Sin ninguna columna: ${lista(sinColumnas)}. Decide tu que atributos lleva cada tabla.`,
+      detalle: `Sin ninguna columna: ${lista(sinColumnas)}. Decide tú qué atributos lleva cada tabla.`,
     },
     {
       id: "nombres-tabla-unicos",
@@ -136,9 +136,9 @@ function validarTablas(t: Trabajo): Chequeo[] {
     },
     {
       id: "sin-celdas-vacias",
-      etiqueta: "No quedan celdas vacias",
+      etiqueta: "No quedan celdas vacías",
       ok: conVacias.length === 0,
-      detalle: `Celdas vacias en: ${lista(conVacias)}.`,
+      detalle: `Celdas vacías en: ${lista(conVacias)}.`,
     },
   ];
 }
@@ -156,7 +156,7 @@ function validarPrimeraFN(t: Trabajo): Chequeo[] {
       const r = chequearUnicidad(tb, pk.id);
       if (!r.ok) {
         pkNoUnica.push(
-          `${tb.nombre}.${pk.nombre}${r.duplicados.length ? ` (repite ${lista(r.duplicados, 3)})` : " (hay vacios)"}`,
+          `${tb.nombre}.${pk.nombre}${r.duplicados.length ? ` (repite ${lista(r.duplicados, 3)})` : " (hay vacíos)"}`,
         );
       }
     }
@@ -183,29 +183,29 @@ function validarPrimeraFN(t: Trabajo): Chequeo[] {
       id: "pk-simple",
       etiqueta: "Cada tabla tiene una sola columna como PK",
       ok: pkMultiple.length === 0,
-      detalle: `Con PK multiple: ${lista(pkMultiple)}.`,
+      detalle: `Con PK múltiple: ${lista(pkMultiple)}.`,
     },
     {
       id: "pk-autogenerada",
-      etiqueta: "La PK esta marcada como autogenerada",
+      etiqueta: "La PK está marcada como autogenerada",
       ok: noAutogenerada.length === 0,
       detalle: `Falta marcar autogenerada en: ${lista(noAutogenerada)}.`,
     },
     {
       id: "pk-unica",
-      etiqueta: "Los valores de la PK son unicos y no vacios",
+      etiqueta: "Los valores de la PK son únicos y no vacíos",
       ok: pkNoUnica.length === 0,
       detalle: `Problemas en: ${lista(pkNoUnica)}.`,
     },
     {
       id: "atomicidad-clasificada",
-      etiqueta: "Clasificaste cada atributo como atomico o no atomico",
+      etiqueta: "Clasificaste cada atributo como atómico o no atómico",
       ok: sinClasificar.length === 0,
       detalle: `Falta clasificar: ${lista(sinClasificar)}.`,
     },
     {
       id: "no-atomicos-resueltos",
-      etiqueta: "Descompusiste todos los atributos no atomicos",
+      etiqueta: "Descompusiste todos los atributos no atómicos",
       ok: noAtomicasPendientes.length === 0,
       detalle: `Pendientes de descomponer: ${lista(noAtomicasPendientes)}.`,
     },
@@ -234,28 +234,28 @@ function validarSegundaFN(t: Trabajo): Chequeo[] {
   return [
     {
       id: "revision-hecha",
-      etiqueta: "Revisaste todas las tablas buscando grupos de repeticion",
+      etiqueta: "Revisaste todas las tablas buscando grupos de repetición",
       ok: revisado,
       detalle:
-        "Resuelve al menos un grupo o declara explicitamente que no encontraste ninguno.",
+        "Resuelve al menos un grupo o declara explícitamente que no encontraste ninguno.",
     },
     {
       id: "sin-sugerencias",
-      etiqueta: "No quedan columnas con patron atributo1, atributo2, atributoN",
+      etiqueta: "No quedan columnas con patrón atributo1, atributo2, atributoN",
       ok: sugeridos.length === 0,
-      detalle: `La app detecta este patron en: ${lista(sugeridos)}. Marcalos como grupo y generalos.`,
+      detalle: `La app detecta este patrón en: ${lista(sugeridos)}. Márcalos como grupo y genéralos.`,
     },
     {
       id: "grupos-resueltos",
-      etiqueta: "Todo grupo marcado fue convertido en tabla + tabla puente",
+      etiqueta: "Todo grupo marcado fue convertido en tabla + tabla de transición",
       ok: marcadosSinResolver.length === 0,
       detalle: `Marcados sin resolver: ${lista(marcadosSinResolver)}.`,
     },
     {
       id: "puentes-existen",
-      etiqueta: "Cada tabla derivada conserva su tabla de transicion",
+      etiqueta: "Cada tabla derivada conserva su tabla de transición",
       ok: puentesFaltantes.length === 0,
-      detalle: `Falta la tabla puente: ${lista(puentesFaltantes)}.`,
+      detalle: `Falta la tabla de transición: ${lista(puentesFaltantes)}.`,
     },
   ];
 }
@@ -276,21 +276,21 @@ function validarTerceraFN(t: Trabajo): Chequeo[] {
   return [
     {
       id: "dependencias-declaradas",
-      etiqueta: "Declaraste de que depende cada atributo",
+      etiqueta: "Declaraste de qué depende cada atributo",
       ok: sinDeclarar.length === 0,
       detalle: `Falta declarar: ${lista(sinDeclarar)}.`,
     },
     {
       id: "transitivas-resueltas",
-      etiqueta: "Ningun atributo depende de otro atributo que no sea la PK",
+      etiqueta: "Ningún atributo depende de otro atributo que no sea la PK",
       ok: transitivasPendientes.length === 0,
       detalle: `Pendientes de mover: ${lista(transitivasPendientes)}.`,
     },
     {
       id: "revision-3fn",
-      etiqueta: "Cerraste la revision de dependencias transitivas",
+      etiqueta: "Cerraste la revisión de dependencias transitivas",
       ok: revisado,
-      detalle: "Resuelve al menos una o declara que todas dependian ya de la PK.",
+      detalle: "Resuelve al menos una o declara que todas dependían ya de la PK.",
     },
   ];
 }

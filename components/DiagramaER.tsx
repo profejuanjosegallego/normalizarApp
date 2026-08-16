@@ -151,7 +151,7 @@ export default function DiagramaER({
     setEnCurso(null);
   }
 
-  // Una linea por cada clave foranea: del lado "muchos" (FK) al lado "uno" (PK).
+  // Una línea por cada clave foránea: del lado "muchos" (FK) al lado "uno" (PK).
   const conexiones = modelo.flatMap((origen) =>
     origen.columnas
       .map((col, indice) => {
@@ -223,7 +223,7 @@ export default function DiagramaER({
           onPointerUp={terminarArrastre}
           onPointerCancel={terminarArrastre}
           role="img"
-          aria-label="Diagrama entidad-relacion del modelo"
+          aria-label="Diagrama entidad-relación del modelo"
         >
           <defs>
             <pattern id={idCuadricula} width="24" height="24" patternUnits="userSpaceOnUse">
@@ -321,7 +321,7 @@ export default function DiagramaER({
                     opacity="0.85"
                     style={{ pointerEvents: "none", userSelect: "none" }}
                   >
-                    {tabla.tipo === "puente" ? "PUENTE" : "DERIVADA"}
+                    {tabla.tipo === "puente" ? "TRANSICIÓN" : "DERIVADA"}
                   </text>
                 ) : null}
 
@@ -383,14 +383,14 @@ export default function DiagramaER({
             className="inline-block h-2.5 w-2.5 rounded-sm"
             style={{ background: COLOR_TITULO.derivada }}
           />
-          derivada de la normalizacion
+          derivada de la normalización
         </span>
         <span className="flex items-center gap-1.5">
           <span
             className="inline-block h-2.5 w-2.5 rounded-sm"
             style={{ background: COLOR_TITULO.puente }}
           />
-          tabla de transicion
+          tabla de transición
         </span>
         <span>La pata de gallo marca el lado “muchos”.</span>
       </div>

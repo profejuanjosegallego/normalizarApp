@@ -6,7 +6,7 @@ import { Aviso, Campo, Seccion } from "../ui";
 const METODO = [
   {
     titulo: "1. Entidades y relaciones",
-    texto: "Extrae del enunciado los objetos del mundo real y di como se relacionan entre si.",
+    texto: "Extrae del enunciado los objetos del mundo real y di cómo se relacionan entre sí.",
   },
   {
     titulo: "2. Tablas y registros",
@@ -14,15 +14,15 @@ const METODO = [
   },
   {
     titulo: "3. Primera forma normal",
-    texto: "Verifica que el id sea unico y autogenerado, y que cada atributo sea atomico segun el contexto. Los no atomicos se senalan y se descomponen en mas columnas.",
+    texto: "Verifica que el id sea único y autogenerado, y que cada atributo sea atómico según el contexto. Los no atómicos se señalan y se descomponen en más columnas.",
   },
   {
     titulo: "4. Segunda forma normal",
-    texto: "Si quedan grupos de repeticion (atributo1, atributo2, atributoN), se crea una tabla con el nombre del atributo y una tabla de transicion que la asocia.",
+    texto: "Si quedan grupos de repetición (atributo1, atributo2, atributoN), se crea una tabla con el nombre del atributo y una tabla de transición que la asocia.",
   },
   {
     titulo: "5. Tercera forma normal",
-    texto: "Cada atributo debe depender unica y directamente del id de su tabla. Si depende de otro atributo, se crea una tabla nueva o se traslada a la tabla donde ya corresponde.",
+    texto: "Cada atributo debe depender única y directamente del id de su tabla. Si depende de otro atributo, se crea una tabla nueva o se traslada a la tabla donde ya corresponde.",
   },
 ];
 
@@ -63,10 +63,10 @@ export default function PasoEnunciado({ trabajo, actualizar }: PropsPaso) {
             etiqueta="Nombre completo"
             value={estudiante.nombre}
             onChange={(e) => fijar("nombre", e.target.value)}
-            placeholder="Ana Maria Perez"
+            placeholder="Ana María Pérez"
           />
           <Campo
-            etiqueta="Codigo o documento"
+            etiqueta="Código o documento"
             value={estudiante.codigo}
             onChange={(e) => fijar("codigo", e.target.value)}
             placeholder="20241234"
@@ -80,7 +80,7 @@ export default function PasoEnunciado({ trabajo, actualizar }: PropsPaso) {
         </div>
       </Seccion>
 
-      <Seccion titulo="Como vas a trabajar" descripcion="El mismo proceso que hacias en Excel, paso a paso.">
+      <Seccion titulo="Cómo vas a trabajar" descripcion="El mismo proceso que hacías en Excel, paso a paso.">
         <ol className="grid gap-3 sm:grid-cols-2">
           {METODO.map((m) => (
             <li key={m.titulo} className="tarjeta-plana p-3">

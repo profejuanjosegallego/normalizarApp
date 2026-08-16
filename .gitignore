@@ -16,6 +16,8 @@ next-env.d.ts
 # Variables de entorno
 .env
 .env*.local
+# Archivo que se sube a Vercel con "Import .env"
+supa.env
 
 # Registros y depuracion
 npm-debug.log*

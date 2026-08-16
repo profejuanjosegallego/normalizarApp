@@ -258,6 +258,114 @@ body {
   }
 }
 
+/* --------------------------------------------------------------------------
+   Animaciones de la portada. Todo se apaga si el sistema pide menos
+   movimiento.
+   -------------------------------------------------------------------------- */
+
+@keyframes aparecer {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes flotar {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(4%, -5%) scale(1.12);
+  }
+}
+
+@keyframes correrBrillo {
+  to {
+    background-position: 200% center;
+  }
+}
+
+/* Recorrido del resaltado por la tira de pasos: encendido breve y descanso. */
+@keyframes encender {
+  0%,
+  8% {
+    background: var(--acento);
+    border-color: var(--acento);
+    color: var(--acento-texto);
+    transform: translateY(-2px);
+  }
+  22%,
+  100% {
+    background: var(--superficie);
+    border-color: var(--borde);
+    color: var(--texto-suave);
+    transform: none;
+  }
+}
+
+.aparece {
+  animation: aparecer 0.65s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+.titulo-animado {
+  background: linear-gradient(
+    100deg,
+    var(--texto) 25%,
+    var(--acento) 42%,
+    var(--texto) 60%
+  );
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: correrBrillo 7s linear infinite;
+}
+
+/* Manchas de color detras del encabezado. */
+.mancha {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(64px);
+  opacity: 0.45;
+  pointer-events: none;
+  animation: flotar 16s ease-in-out infinite;
+}
+
+.paso-tira {
+  animation: encender 7s ease-in-out infinite;
+}
+
+.tarjeta-portada {
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.tarjeta-portada:hover {
+  transform: translateY(-3px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aparece,
+  .titulo-animado,
+  .mancha,
+  .paso-tira {
+    animation: none;
+  }
+
+  .titulo-animado {
+    background: none;
+    color: var(--texto);
+  }
+
+  .tarjeta-portada:hover {
+    transform: none;
+  }
+}
+
 /* Impresion / guardar como PDF */
 @media print {
   :root {

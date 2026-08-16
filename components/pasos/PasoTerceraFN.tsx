@@ -152,13 +152,13 @@ export default function PasoTerceraFN({ trabajo, actualizar }: PropsPaso) {
                 declaraciones: { ...t.declaraciones, sinTransitivas: v },
               }))
             }
-            etiqueta="Revise todo y todos dependen del id"
+            etiqueta="Revisé todo y todos dependen del id"
           />
         }
       >
         <Aviso tono="info" titulo="La pregunta clave">
           Si conociendo el valor de otro atributo ya puedes deducir este, entonces este atributo no
-          depende del id: depende de aquel. Ejemplo tipico: el pais de la editorial no depende del
+          depende del id: depende de aquel. Ejemplo típico: el país de la editorial no depende del
           libro, depende de la editorial.
         </Aviso>
       </Seccion>
@@ -202,7 +202,7 @@ export default function PasoTerceraFN({ trabajo, actualizar }: PropsPaso) {
                       }
                       aria-label={`Dependencia de ${col.nombre}`}
                     >
-                      <option value="">¿de que depende?</option>
+                      <option value="">¿de qué depende?</option>
                       <option value="pk">del id de la tabla</option>
                       <option value="otro">de otro atributo</option>
                     </select>
@@ -271,7 +271,7 @@ export default function PasoTerceraFN({ trabajo, actualizar }: PropsPaso) {
                 <span className="suave">
                   salieron de {r.tablaOrigen} hacia {r.tablaDestino}
                   {r.creoTabla ? " (tabla nueva)" : " (tabla existente)"}
-                  {r.determinante !== "-" ? ` porque dependian de ${r.determinante}` : ""}
+                  {r.determinante !== "-" ? ` porque dependían de ${r.determinante}` : ""}
                 </span>
               </li>
             ))}
@@ -363,11 +363,11 @@ export default function PasoTerceraFN({ trabajo, actualizar }: PropsPaso) {
                 />
               </label>
               <Aviso tono="info">
-                Se creara <b>{aSnake(nombreNueva) || "nueva_tabla"}</b> con su id autogenerado,{" "}
+                Se creará <b>{aSnake(nombreNueva) || "nueva_tabla"}</b> con su id autogenerado,{" "}
                 <b>{determinante?.nombre}</b> y los atributos seleccionados. En{" "}
-                <b>{tablaResolviendo?.nombre}</b> esas columnas se reemplazan por la clave foranea{" "}
+                <b>{tablaResolviendo?.nombre}</b> esas columnas se reemplazan por la clave foránea{" "}
                 <b>id_{aSnake(nombreNueva) || "nueva_tabla"}</b>, y los datos se trasladan
-                automaticamente.
+                automáticamente.
               </Aviso>
             </>
           ) : (
@@ -389,8 +389,8 @@ export default function PasoTerceraFN({ trabajo, actualizar }: PropsPaso) {
                 </select>
               </label>
               <Aviso tono="alerta">
-                Los atributos se agregan a la tabla destino y se deja la clave foranea en la tabla
-                de origen, pero los valores llegan vacios: revisa y completa los registros de la
+                Los atributos se agregan a la tabla destino y se deja la clave foránea en la tabla
+                de origen, pero los valores llegan vacíos: revisa y completa los registros de la
                 tabla destino.
               </Aviso>
             </>

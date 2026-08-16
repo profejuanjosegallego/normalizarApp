@@ -91,6 +91,73 @@ export function cargarBorradorDocente(): Ejercicio | null {
   }
 }
 
+/* --------------------------------------------------------------------------
+ * Codigos publicados por el docente
+ *
+ * Al publicar un ejercicio, Supabase devuelve una `clave_edicion` que es lo
+ * unico que permite reeditarlo despues. Se guarda aqui, en el navegador del
+ * docente: si la pierde puede volver a publicar, pero saldra un codigo nuevo.
+ * ----------------------------------------------------------------------- */
+
+const PUBLICADOS = "bdnorm:docente:publicados";
+
+export type Publicacion = {
+  codigo: string;
+  claveEdicion: string;
+  publicadoEn: string;
+  /** Codificacion del enunciado tal como se publico, para avisar si cambio. */
+  firma: string;
+  /** Para poder listarlos sin consultar el servidor. */
+  titulo?: string;
+};
+
+export type PublicacionListada = Publicacion & { ejercicioId: string };
+
+function leerPublicados(): Record<string, Publicacion> {
+  if (!disponible()) return {};
+  try {
+    const crudo = localStorage.getItem(PUBLICADOS);
+    return crudo ? (JSON.parse(crudo) as Record<string, Publicacion>) : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Todos los ejercicios publicados desde este navegador, del mas nuevo al mas viejo. */
+export function listarPublicaciones(): PublicacionListada[] {
+  return Object.entries(leerPublicados())
+    .map(([ejercicioId, p]) => ({ ...p, ejercicioId }))
+    .sort((a, b) => (a.publicadoEn < b.publicadoEn ? 1 : -1));
+}
+
+/** Olvida la publicacion en este navegador (no toca el servidor). */
+export function olvidarPublicacion(ejercicioId: string): void {
+  if (!disponible()) return;
+  const todas = leerPublicados();
+  delete todas[ejercicioId];
+  try {
+    localStorage.setItem(PUBLICADOS, JSON.stringify(todas));
+  } catch {
+    // sin efecto
+  }
+}
+
+export function guardarPublicacion(ejercicioId: string, publicacion: Publicacion): void {
+  if (!disponible()) return;
+  try {
+    localStorage.setItem(
+      PUBLICADOS,
+      JSON.stringify({ ...leerPublicados(), [ejercicioId]: publicacion }),
+    );
+  } catch {
+    // sin efecto: el docente igual ve el codigo en pantalla
+  }
+}
+
+export function cargarPublicacion(ejercicioId: string): Publicacion | null {
+  return leerPublicados()[ejercicioId] ?? null;
+}
+
 export function descargarJSON(nombreArchivo: string, dato: unknown): void {
   const blob = new Blob([JSON.stringify(dato, null, 2)], {
     type: "application/json;charset=utf-8",

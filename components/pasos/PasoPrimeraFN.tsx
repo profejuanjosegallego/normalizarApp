@@ -11,7 +11,7 @@ import { Aviso, Dialogo, Seccion } from "../ui";
 const SEPARADORES = [
   { valor: " ", texto: "Espacio ( )" },
   { valor: ",", texto: "Coma (,)" },
-  { valor: "-", texto: "Guion (-)" },
+  { valor: "-", texto: "Guión (-)" },
   { valor: "/", texto: "Barra (/)" },
   { valor: "", texto: "No repartir valores" },
 ];
@@ -116,7 +116,7 @@ export default function PasoPrimeraFN({ trabajo, actualizar }: PropsPaso) {
     <>
       <Seccion
         titulo="Paso 3 · Primera forma normal"
-        descripcion="Dos revisiones: (a) que cada tabla tenga un identificador unico y autogenerado — si no lo creaste antes, agregalo aqui con “+ Columna” y marcalo como PK — y (b) que cada atributo sea atomico segun el contexto de este ejercicio. Marca primero, descompone despues."
+        descripcion="Dos revisiones: (a) que cada tabla tenga un identificador único y autogenerado — si no lo creaste antes, agrégalo aquí con “+ Columna” y márcalo como PK — y (b) que cada atributo sea atómico según el contexto de este ejercicio. Marca primero, descompón después."
       >
         {ejercicio.contextoAtomicidad ? (
           <Aviso tono="alerta" titulo="Recuerda las reglas de atomicidad de este ejercicio">
@@ -124,7 +124,7 @@ export default function PasoPrimeraFN({ trabajo, actualizar }: PropsPaso) {
           </Aviso>
         ) : (
           <Aviso tono="info">
-            Atomico no es absoluto: depende del contexto. Una fecha puede quedar como un solo
+            Atómico no es absoluto: depende del contexto. Una fecha puede quedar como un solo
             atributo, pero un “nombre completo” casi siempre debe separarse.
           </Aviso>
         )}
@@ -166,10 +166,10 @@ export default function PasoPrimeraFN({ trabajo, actualizar }: PropsPaso) {
                       {unicidad ? (
                         <span className={unicidad.ok ? "chip chip-ok" : "chip chip-error"}>
                           {unicidad.ok
-                            ? "valores unicos"
+                            ? "valores únicos"
                             : unicidad.duplicados.length
                               ? "se repite"
-                              : "hay vacios"}
+                              : "hay vacíos"}
                         </span>
                       ) : null}
                     </div>
@@ -189,7 +189,7 @@ export default function PasoPrimeraFN({ trabajo, actualizar }: PropsPaso) {
                         }
                         onClick={() => marcarAtomicidad(tabla.id, col.id, "atomico")}
                       >
-                        atomico
+                        atómico
                       </button>
                       <button
                         type="button"
@@ -205,7 +205,7 @@ export default function PasoPrimeraFN({ trabajo, actualizar }: PropsPaso) {
                         }
                         onClick={() => marcarAtomicidad(tabla.id, col.id, "no-atomico")}
                       >
-                        no atomico
+                        no atómico
                       </button>
                     </div>
                     {col.atomicidad === "no-atomico" ? (
@@ -290,7 +290,7 @@ export default function PasoPrimeraFN({ trabajo, actualizar }: PropsPaso) {
 
           {previsualizacion.length > 0 ? (
             <p className="suave text-xs">
-              Con ese separador, el primer valor quedaria como:{" "}
+              Con ese separador, el primer valor quedaría como:{" "}
               {previsualizacion.map((p, i) => (
                 <span key={i} className="chip mr-1">
                   {p}
@@ -300,7 +300,7 @@ export default function PasoPrimeraFN({ trabajo, actualizar }: PropsPaso) {
           ) : null}
 
           <div>
-            <span className="etiqueta">Nuevas columnas atomicas</span>
+            <span className="etiqueta">Nuevas columnas atómicas</span>
             <div className="space-y-2">
               {nombres.map((n, i) => (
                 <div key={i} className="flex gap-2">
@@ -335,7 +335,7 @@ export default function PasoPrimeraFN({ trabajo, actualizar }: PropsPaso) {
           </div>
 
           <label className="block">
-            <span className="etiqueta">Por que no era atomico (opcional)</span>
+            <span className="etiqueta">Por qué no era atómico (opcional)</span>
             <textarea
               className="campo resize-y"
               rows={2}

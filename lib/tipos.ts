@@ -110,7 +110,10 @@ export type GrupoResuelto = {
   tablaOrigen: string;
   grupo: string;
   columnasOriginales: string[];
+  /** Tabla que quedo del lado del atributo: nueva o una que ya existia. */
   tablaCreada: string;
+  /** `false` cuando el estudiante enlazo contra una tabla que ya tenia. */
+  creoTabla?: boolean;
   tablaPuente: string;
 };
 

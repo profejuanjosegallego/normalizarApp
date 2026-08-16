@@ -68,7 +68,7 @@ export default function PasoEntrega({ trabajo, actualizar }: PropsPaso) {
     <>
       <Seccion
         titulo="Paso 6 · Entrega"
-        descripcion="Revisa tu modelo final, descarga el archivo y entregalo a tu docente."
+        descripcion="Revisa tu modelo final, descarga el archivo y entrégalo a tu docente."
         acciones={
           <>
             <button type="button" className="btn btn-primario no-imprimir" onClick={exportar}>
@@ -111,7 +111,7 @@ export default function PasoEntrega({ trabajo, actualizar }: PropsPaso) {
 
         {pendientes.length > 0 ? (
           <div className="no-imprimir mt-4">
-            <Aviso tono="alerta" titulo="Todavia hay verificaciones sin cumplir">
+            <Aviso tono="alerta" titulo="Todavía hay verificaciones sin cumplir">
               <div className="mt-2 space-y-3">
                 {pendientes.map(({ paso, fallas }) => (
                   <div key={paso}>
@@ -131,7 +131,7 @@ export default function PasoEntrega({ trabajo, actualizar }: PropsPaso) {
         ) : (
           <div className="mt-4">
             <Aviso tono="ok" titulo="Modelo completo">
-              Pasaste todas las verificaciones estructurales del taller. Recuerda que la correccion
+              Pasaste todas las verificaciones estructurales del taller. Recuerda que la corrección
               del modelo frente al enunciado la revisa tu docente.
             </Aviso>
           </div>
@@ -159,8 +159,8 @@ export default function PasoEntrega({ trabajo, actualizar }: PropsPaso) {
       </Seccion>
 
       <Seccion
-        titulo="Evolucion del modelo"
-        descripcion="Cuantas tablas tenias al cerrar cada forma normal."
+        titulo="Evolución del modelo"
+        descripcion="Cuántas tablas tenías al cerrar cada forma normal."
       >
         <div className="grid gap-3 sm:grid-cols-4">
           {ETAPAS.map(({ forma, titulo }) => {
@@ -183,7 +183,7 @@ export default function PasoEntrega({ trabajo, actualizar }: PropsPaso) {
       </Seccion>
 
       <Seccion
-        titulo="Diagrama entidad-relacion"
+        titulo="Diagrama entidad-relación"
         descripcion="Tu modelo final. Arrastra las tablas para acomodarlo antes de imprimir o entregar."
       >
         <DiagramaER
@@ -229,7 +229,7 @@ export default function PasoEntrega({ trabajo, actualizar }: PropsPaso) {
             )}
           </ul>
         ) : (
-          <p className="suave text-sm">El modelo final no tiene claves foraneas.</p>
+          <p className="suave text-sm">El modelo final no tiene claves foráneas.</p>
         )}
       </Seccion>
 
@@ -243,7 +243,7 @@ export default function PasoEntrega({ trabajo, actualizar }: PropsPaso) {
 
       <Seccion
         titulo="Diagrama (Mermaid)"
-        descripcion="Pegalo en mermaid.live, Notion o en tu informe para ver el diagrama entidad-relacion."
+        descripcion="Pégalo en mermaid.live, Notion o en tu informe para ver el diagrama entidad-relación."
         acciones={<BotonCopiar texto={mermaid} etiqueta="Copiar diagrama" />}
       >
         <pre className="tarjeta-plana max-h-72 overflow-auto p-3 text-xs leading-relaxed">

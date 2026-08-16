@@ -2,6 +2,7 @@
 
 import { nuevoId } from "@/lib/ids";
 import type { Cardinalidad } from "@/lib/tipos";
+import DiagramaEntidades from "../DiagramaEntidades";
 import type { PropsPaso } from "../Taller";
 import { Aviso, Seccion } from "../ui";
 
@@ -63,7 +64,7 @@ export default function PasoEntidades({ trabajo, actualizar }: PropsPaso) {
     <>
       <Seccion
         titulo="Paso 1 · Entidades"
-        descripcion="Lee el enunciado y anota los objetos del mundo real que necesitan guardarse. Normalmente son los sustantivos: usuario, libro, prestamo, programa."
+        descripcion="Lee el enunciado y anota los objetos del mundo real que necesitan guardarse. Normalmente son los sustantivos: usuario, libro, préstamo, programa."
         acciones={
           <button type="button" className="btn btn-primario" onClick={agregarEntidad}>
             + Entidad
@@ -72,7 +73,7 @@ export default function PasoEntidades({ trabajo, actualizar }: PropsPaso) {
       >
         {entidades.length === 0 ? (
           <Aviso tono="info">
-            Aun no has identificado entidades. Empieza con las mas evidentes del enunciado; despues
+            Aún no has identificado entidades. Empieza con las más evidentes del enunciado; después
             puedes agregar o quitar.
           </Aviso>
         ) : (
@@ -89,10 +90,10 @@ export default function PasoEntidades({ trabajo, actualizar }: PropsPaso) {
                 />
                 <input
                   className="campo min-w-0 flex-1"
-                  placeholder="Que representa y por que la separaste (opcional)"
+                  placeholder="Qué representa y por qué la separaste (opcional)"
                   value={e.descripcion}
                   onChange={(ev) => editarEntidad(e.id, "descripcion", ev.target.value)}
-                  aria-label="Descripcion de la entidad"
+                  aria-label="Descripción de la entidad"
                 />
                 <button
                   type="button"
@@ -109,7 +110,7 @@ export default function PasoEntidades({ trabajo, actualizar }: PropsPaso) {
 
       <Seccion
         titulo="Paso 1 · Relaciones"
-        descripcion="Di como se conectan las entidades. La cardinalidad N:M te anticipa que mas adelante necesitaras una tabla de transicion."
+        descripcion="Di cómo se conectan las entidades. La cardinalidad N:M te anticipa que más adelante necesitarás una tabla de transición."
         acciones={
           <button
             type="button"
@@ -172,7 +173,7 @@ export default function PasoEntidades({ trabajo, actualizar }: PropsPaso) {
                   placeholder="Frase que la describe: “un usuario toma prestados varios libros”"
                   value={r.descripcion}
                   onChange={(ev) => editarRelacion(r.id, { descripcion: ev.target.value })}
-                  aria-label="Descripcion de la relacion"
+                  aria-label="Descripción de la relación"
                 />
                 <button
                   type="button"
@@ -186,6 +187,15 @@ export default function PasoEntidades({ trabajo, actualizar }: PropsPaso) {
           </div>
         )}
       </Seccion>
+
+      {entidades.length > 0 ? (
+        <Seccion
+          titulo="Diagrama conceptual"
+          descripcion="Así se ve tu modelo antes de convertirlo en tablas: rectángulos para las entidades, rombos para las relaciones y la cardinalidad a cada lado."
+        >
+          <DiagramaEntidades entidades={entidades} relaciones={relaciones} />
+        </Seccion>
+      ) : null}
     </>
   );
 }

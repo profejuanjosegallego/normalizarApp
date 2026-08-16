@@ -22,7 +22,7 @@ export default function PasoTablas({ trabajo, actualizar }: PropsPaso) {
         )
         .map((e) => {
           const tabla = nuevaTabla(aSnake(e.nombre), "unf");
-          // Dos registros vacios listos para llenar, como en la hoja de calculo.
+          // Dos registros vacíos listos para llenar, como en la hoja de cálculo.
           for (let i = 0; i < ejercicio.minRegistros; i += 1) {
             tabla.filas.push(nuevaFila(tabla.columnas));
           }
@@ -54,7 +54,7 @@ export default function PasoTablas({ trabajo, actualizar }: PropsPaso) {
     <>
       <Seccion
         titulo="Paso 2 · Tablas y registros iniciales"
-        descripcion={`Las tablas nacen vacias: tu decides que columnas lleva cada una, incluido el identificador. Agrega los atributos tal como aparecen en el enunciado (todavia sin normalizar) y llena al menos ${ejercicio.minRegistros} registros. Los datos de ejemplo son los que despues te permiten ver los grupos de repeticion y las dependencias.`}
+        descripcion={`Las tablas nacen vacías: tú decides qué columnas lleva cada una, incluido el identificador. Agrega los atributos tal como aparecen en el enunciado (todavía sin normalizar) y llena al menos ${ejercicio.minRegistros} registros. Los datos de ejemplo son los que después te permiten ver los grupos de repetición y las dependencias.`}
         acciones={
           <>
             {faltantes.length > 0 ? (
@@ -63,21 +63,21 @@ export default function PasoTablas({ trabajo, actualizar }: PropsPaso) {
               </button>
             ) : null}
             <button type="button" className="btn" onClick={agregarTablaVacia}>
-              + Tabla vacia
+              + Tabla vacía
             </button>
           </>
         }
       >
         <Aviso tono="info">
-          Escribe los atributos como salen del enunciado, aunque sepas que estan mal: si el enunciado
-          dice “nombre completo” o “telefonos”, ponlo asi. Normalizar es justamente corregir eso en
-          los pasos siguientes. Piensa tambien como vas a identificar cada registro: en el paso de
-          1FN tendras que justificar que ese identificador es unico y autogenerado.
+          Escribe los atributos como salen del enunciado, aunque sepas que están mal: si el enunciado
+          dice “nombre completo” o “teléfonos”, ponlo así. Normalizar es justamente corregir eso en
+          los pasos siguientes. Piensa también cómo vas a identificar cada registro: en el paso de
+          1FN tendrás que justificar que ese identificador es único y autogenerado.
         </Aviso>
       </Seccion>
 
       {modelo.length === 0 ? (
-        <Seccion titulo="Sin tablas todavia">
+        <Seccion titulo="Sin tablas todavía">
           <p className="suave text-sm">
             Usa los botones de arriba para crear tus tablas a partir de las entidades que
             identificaste.
