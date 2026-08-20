@@ -27,7 +27,10 @@ export type Ejercicio = {
 
 export type Atomicidad = "atomico" | "no-atomico";
 
-/** De que depende un atributo (paso 3FN). */
+/**
+ * De que depende un atributo (paso 3FN). "otro" significa que no depende del id
+ * de su tabla, asi que hay que retirarlo de ahi.
+ */
 export type Dependencia = "pk" | "otro";
 
 export type Columna = {
@@ -50,8 +53,6 @@ export type Columna = {
 
   /** 3FN: dependencia declarada respecto de la PK de su tabla. */
   dependencia: Dependencia | null;
-  /** 3FN: id de la columna determinante cuando `dependencia === "otro"`. */
-  determinanteId: string | null;
 };
 
 export type Fila = {
@@ -117,14 +118,15 @@ export type GrupoResuelto = {
   tablaPuente: string;
 };
 
-/** Registro de una dependencia transitiva resuelta (3FN). */
+/** Registro de un atributo retirado en 3FN por no depender del id de su tabla. */
 export type TransitivaResuelta = {
   id: string;
   tablaOrigen: string;
-  determinante: string;
   atributosMovidos: string[];
-  tablaDestino: string;
-  creoTabla: boolean;
+  /** Solo en trabajos guardados antes, cuando la app movia el atributo ella misma. */
+  determinante?: string;
+  tablaDestino?: string;
+  creoTabla?: boolean;
 };
 
 /** Declaraciones explicitas del estudiante cuando "no hay nada que corregir". */

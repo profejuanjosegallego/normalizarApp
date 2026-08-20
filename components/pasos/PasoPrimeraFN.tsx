@@ -116,7 +116,7 @@ export default function PasoPrimeraFN({ trabajo, actualizar }: PropsPaso) {
     <>
       <Seccion
         titulo="Paso 3 · Primera forma normal"
-        descripcion="Dos revisiones: (a) que cada tabla tenga un identificador único y autogenerado — si no lo creaste antes, agrégalo aquí con “+ Columna” y márcalo como PK — y (b) que cada atributo sea atómico según el contexto de este ejercicio. Marca primero, descompón después."
+        descripcion="Dos revisiones: (a) que cada tabla tenga un identificador único y autogenerado — si no lo creaste antes, agrégalo aquí con “+ Columna” y márcalo como PK — y (b) que cada atributo sea atómico según el contexto de este ejercicio. Marca primero, descompón después. Si una columna guarda el id de otra tabla, márcala como FK y elige a qué tabla apunta: mientras no lo hagas, la app la trata como un atributo más."
       >
         {ejercicio.contextoAtomicidad ? (
           <Aviso tono="alerta" titulo="Recuerda las reglas de atomicidad de este ejercicio">
@@ -142,6 +142,7 @@ export default function PasoPrimeraFN({ trabajo, actualizar }: PropsPaso) {
               modelo={modelo}
               onCambio={cambiarTabla}
               editableEstructura
+              permiteFK
               colorEncabezado={(col) => {
                 if (col.esPK || col.esFK) return undefined;
                 if (col.atomicidad === "atomico") return "var(--ok-suave)";
@@ -149,8 +150,6 @@ export default function PasoPrimeraFN({ trabajo, actualizar }: PropsPaso) {
                 return undefined;
               }}
               encabezadoExtra={(col) => {
-                if (col.esFK) return null;
-
                 if (col.esPK) {
                   return (
                     <div className="flex flex-col gap-1">
@@ -173,6 +172,15 @@ export default function PasoPrimeraFN({ trabajo, actualizar }: PropsPaso) {
                         </span>
                       ) : null}
                     </div>
+                  );
+                }
+
+                if (col.esFK) {
+                  return (
+                    <span className="suave text-[10px] leading-tight">
+                      Clave foránea: su valor sale de la tabla a la que apunta, no se clasifica
+                      aquí.
+                    </span>
                   );
                 }
 

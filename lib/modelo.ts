@@ -27,7 +27,6 @@ export function nuevaColumna(nombre: string, extra: Partial<Columna> = {}): Colu
     derivadaDe: null,
     grupoRepeticion: null,
     dependencia: null,
-    determinanteId: null,
     ...extra,
   };
 }
@@ -394,177 +393,45 @@ export function resolverGrupoRepeticion(
 }
 
 // ---------------------------------------------------------------------------
-// 3FN: dependencias transitivas
+// 3FN: atributos que no dependen del id de su tabla
 // ---------------------------------------------------------------------------
 
-export type ResultadoTransitiva = {
+export type ResultadoRetiro = {
   modelo: Tabla[];
   registro: TransitivaResuelta;
 };
 
 /**
- * El determinante y sus dependientes salen de la tabla original hacia una tabla
- * nueva; la original conserva solo una FK hacia ella.
+ * Saca una columna de su tabla porque no depende del id de esa tabla. La app no
+ * decide a donde va: el estudiante la vuelve a crear en la tabla donde si
+ * corresponde, que es justamente lo que se evalua en 3FN.
  */
-export function crearTablaDesdeDeterminante(
+export function retirarAtributo(
   modelo: Tabla[],
-  tablaOrigenId: string,
-  determinanteId: string,
-  dependientesIds: string[],
-  nombreNueva: string,
-): ResultadoTransitiva | null {
-  const origen = buscarTabla(modelo, tablaOrigenId);
-  if (!origen) return null;
-  const determinante = origen.columnas.find((c) => c.id === determinanteId);
-  if (!determinante) return null;
-  const dependientes = origen.columnas.filter((c) => dependientesIds.includes(c.id));
-
-  const nueva = nuevaTabla(nombreNueva, "3fn", "derivada", true);
-  nueva.columnas[0].autogenerada = true;
-  nueva.columnas[0].nombre = `id_${aSnake(nombreNueva)}`;
-
-  const colDeterminante = nuevaColumna(determinante.nombre, {
-    tipo: determinante.tipo,
-    atomicidad: determinante.atomicidad,
-    dependencia: "pk",
-  });
-  const colsDependientes = dependientes.map((c) =>
-    nuevaColumna(c.nombre, {
-      tipo: c.tipo,
-      atomicidad: c.atomicidad,
-      dependencia: "pk",
-    }),
-  );
-  nueva.columnas.push(colDeterminante, ...colsDependientes);
-  nueva.nota = `Creada en 3FN: ${dependientes.map((d) => d.nombre).join(", ")} dependía(n) de ${determinante.nombre}, no de la PK de ${origen.nombre}.`;
-
-  // Una fila por valor distinto del determinante.
-  const idPorDeterminante = new Map<string, string>();
-  for (const fila of origen.filas) {
-    const clave = (fila.valores[determinante.id] ?? "").trim();
-    if (!clave || idPorDeterminante.has(clave)) continue;
-    const id = String(idPorDeterminante.size + 1);
-    idPorDeterminante.set(clave, id);
-    const valores: Record<string, string> = {
-      [nueva.columnas[0].id]: id,
-      [colDeterminante.id]: clave,
-    };
-    dependientes.forEach((dep, i) => {
-      valores[colsDependientes[i].id] = (fila.valores[dep.id] ?? "").trim();
-    });
-    nueva.filas.push(nuevaFila(nueva.columnas, valores));
-  }
-
-  // La original cambia determinante + dependientes por una FK.
-  const fk = nuevaColumna(`id_${aSnake(nombreNueva)}`, {
-    esFK: true,
-    refTablaId: nueva.id,
-    tipo: "INT",
-    atomicidad: "atomico",
-    dependencia: "pk",
-  });
-  const aQuitar = new Set([determinante.id, ...dependientesIds]);
-  const posicion = origen.columnas.findIndex((c) => c.id === determinante.id);
-  const columnasRestantes = origen.columnas.filter((c) => !aQuitar.has(c.id));
-  columnasRestantes.splice(Math.max(0, Math.min(posicion, columnasRestantes.length)), 0, fk);
-
-  const origenLimpio: Tabla = {
-    ...origen,
-    columnas: columnasRestantes,
-    filas: origen.filas.map((fila) => {
-      const valores = { ...fila.valores };
-      const clave = (valores[determinante.id] ?? "").trim();
-      for (const id of aQuitar) delete valores[id];
-      valores[fk.id] = idPorDeterminante.get(clave) ?? "";
-      return { ...fila, valores };
-    }),
-  };
-
-  const nuevoModelo = modelo.map((t) => (t.id === origen.id ? origenLimpio : t));
-  nuevoModelo.push(nueva);
-
-  return {
-    modelo: nuevoModelo,
-    registro: {
-      id: nuevoId("tr"),
-      tablaOrigen: origen.nombre,
-      determinante: determinante.nombre,
-      atributosMovidos: dependientes.map((d) => d.nombre),
-      tablaDestino: nueva.nombre,
-      creoTabla: true,
-    },
-  };
-}
-
-/** Traslada un atributo a una tabla que ya existe y deja la FK correspondiente. */
-export function moverAtributo(
-  modelo: Tabla[],
-  tablaOrigenId: string,
+  tablaId: string,
   columnaId: string,
-  tablaDestinoId: string,
-): ResultadoTransitiva | null {
-  const origen = buscarTabla(modelo, tablaOrigenId);
-  const destino = buscarTabla(modelo, tablaDestinoId);
-  if (!origen || !destino || origen.id === destino.id) return null;
-  const columna = origen.columnas.find((c) => c.id === columnaId);
+): ResultadoRetiro | null {
+  const tabla = buscarTabla(modelo, tablaId);
+  if (!tabla) return null;
+  const columna = tabla.columnas.find((c) => c.id === columnaId);
   if (!columna) return null;
 
-  const trasladada = nuevaColumna(columna.nombre, {
-    tipo: columna.tipo,
-    atomicidad: columna.atomicidad,
-    notaAtomicidad: columna.notaAtomicidad,
-    dependencia: "pk",
-  });
-
-  const destinoActualizado: Tabla = {
-    ...destino,
-    columnas: [...destino.columnas, trasladada],
-    filas: destino.filas.map((fila) => ({
-      ...fila,
-      valores: { ...fila.valores, [trasladada.id]: "" },
-    })),
-  };
-
-  let columnasOrigen = origen.columnas.filter((c) => c.id !== columnaId);
-  const tieneFK = columnasOrigen.some((c) => c.esFK && c.refTablaId === destino.id);
-  let fkNueva: Columna | null = null;
-  if (!tieneFK) {
-    fkNueva = nuevaColumna(`id_${aSnake(destino.nombre)}`, {
-      esFK: true,
-      refTablaId: destino.id,
-      tipo: "INT",
-      atomicidad: "atomico",
-      dependencia: "pk",
-    });
-    columnasOrigen = [...columnasOrigen, fkNueva];
-  }
-
-  const origenActualizado: Tabla = {
-    ...origen,
-    columnas: columnasOrigen,
-    filas: origen.filas.map((fila) => {
+  const limpia: Tabla = {
+    ...tabla,
+    columnas: tabla.columnas.filter((c) => c.id !== columnaId),
+    filas: tabla.filas.map((fila) => {
       const valores = { ...fila.valores };
       delete valores[columnaId];
-      if (fkNueva) valores[fkNueva.id] = "";
       return { ...fila, valores };
     }),
   };
 
-  const nuevoModelo = modelo.map((t) => {
-    if (t.id === origen.id) return origenActualizado;
-    if (t.id === destino.id) return destinoActualizado;
-    return t;
-  });
-
   return {
-    modelo: nuevoModelo,
+    modelo: modelo.map((t) => (t.id === tabla.id ? limpia : t)),
     registro: {
       id: nuevoId("tr"),
-      tablaOrigen: origen.nombre,
-      determinante: "-",
+      tablaOrigen: tabla.nombre,
       atributosMovidos: [columna.nombre],
-      tablaDestino: destino.nombre,
-      creoTabla: false,
     },
   };
 }

@@ -12,6 +12,10 @@ type Props = {
   /** Permite renombrar/agregar/quitar columnas y editar el nombre de la tabla. */
   editableEstructura?: boolean;
   soloLectura?: boolean;
+  /** Permite marcar columnas como clave foranea y elegir la tabla referenciada. */
+  permiteFK?: boolean;
+  /** Valores iniciales de las columnas que se creen desde este editor. */
+  columnaNueva?: Partial<Columna>;
   /** Controles propios del paso, debajo del nombre de cada columna. */
   encabezadoExtra?: (col: Columna) => React.ReactNode;
   /** Color de fondo del encabezado para resaltar columnas segun el paso. */
@@ -39,6 +43,8 @@ export default function EditorTabla({
   onEliminar,
   editableEstructura = false,
   soloLectura = false,
+  permiteFK = false,
+  columnaNueva,
   encabezadoExtra,
   colorEncabezado,
   pie,
@@ -72,7 +78,7 @@ export default function EditorTabla({
   }
 
   function agregarColumna() {
-    const col = nuevaColumna(`atributo_${tabla.columnas.length + 1}`);
+    const col = nuevaColumna(`atributo_${tabla.columnas.length + 1}`, columnaNueva);
     onCambio({
       ...tabla,
       columnas: [...tabla.columnas, col],
@@ -116,6 +122,15 @@ export default function EditorTabla({
         c.id === id
           ? { ...c, esPK: !c.esPK, dependencia: !c.esPK ? "pk" : c.dependencia }
           : c,
+      ),
+    });
+  }
+
+  function alternarFK(id: string) {
+    onCambio({
+      ...tabla,
+      columnas: tabla.columnas.map((c) =>
+        c.id === id ? { ...c, esFK: !c.esFK, refTablaId: c.esFK ? null : c.refTablaId } : c,
       ),
     });
   }
@@ -245,8 +260,15 @@ export default function EditorTabla({
                       ) : null}
                       {col.esPK ? <span className="chip chip-pk">PK</span> : null}
                       {col.esFK ? (
-                        <span className="chip chip-fk" title={`Referencia a ${nombreDestino(col)}`}>
-                          FK → {nombreDestino(col)}
+                        <span
+                          className="chip chip-fk"
+                          title={
+                            col.refTablaId
+                              ? `Referencia a ${nombreDestino(col)}`
+                              : "Falta elegir a qué tabla apunta"
+                          }
+                        >
+                          {col.refTablaId ? `FK → ${nombreDestino(col)}` : "FK"}
                         </span>
                       ) : null}
                     </div>
@@ -305,6 +327,16 @@ export default function EditorTabla({
                           >
                             {col.esPK ? "Quitar PK" : "Marcar PK"}
                           </button>
+                          {permiteFK ? (
+                            <button
+                              type="button"
+                              className="btn btn-mini"
+                              onClick={() => alternarFK(col.id)}
+                              title="Marca la columna que guarda el id de otra tabla"
+                            >
+                              {col.esFK ? "Quitar FK" : "Marcar FK"}
+                            </button>
+                          ) : null}
                           {tabla.columnas.length > 1 ? (
                             <button
                               type="button"
@@ -316,6 +348,23 @@ export default function EditorTabla({
                             </button>
                           ) : null}
                         </div>
+                        {permiteFK && col.esFK ? (
+                          <select
+                            className="campo text-[11px]"
+                            value={col.refTablaId ?? ""}
+                            onChange={(e) =>
+                              actualizarColumna(col.id, { refTablaId: e.target.value || null })
+                            }
+                            aria-label={`Tabla a la que apunta ${col.nombre}`}
+                          >
+                            <option value="">¿a qué tabla apunta?</option>
+                            {modelo.map((t) => (
+                              <option key={t.id} value={t.id}>
+                                {t.nombre}
+                              </option>
+                            ))}
+                          </select>
+                        ) : null}
                       </>
                     ) : col.tipo ? (
                       <span className="suave text-[11px]">{col.tipo}</span>

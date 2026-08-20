@@ -162,6 +162,13 @@ function validarPrimeraFN(t: Trabajo): Chequeo[] {
     }
   }
 
+  const fkSinDestino: string[] = [];
+  for (const tb of t.modelo) {
+    for (const col of tb.columnas) {
+      if (col.esFK && !col.refTablaId) fkSinDestino.push(`${tb.nombre}.${col.nombre}`);
+    }
+  }
+
   const sinClasificar: string[] = [];
   const noAtomicasPendientes: string[] = [];
   for (const tb of t.modelo) {
@@ -196,6 +203,12 @@ function validarPrimeraFN(t: Trabajo): Chequeo[] {
       etiqueta: "Los valores de la PK son únicos y no vacíos",
       ok: pkNoUnica.length === 0,
       detalle: `Problemas en: ${lista(pkNoUnica)}.`,
+    },
+    {
+      id: "fk-con-destino",
+      etiqueta: "Cada clave foránea indica a qué tabla apunta",
+      ok: fkSinDestino.length === 0,
+      detalle: `Falta elegir la tabla referenciada en: ${lista(fkSinDestino)}.`,
     },
     {
       id: "atomicidad-clasificada",
@@ -282,15 +295,15 @@ function validarTerceraFN(t: Trabajo): Chequeo[] {
     },
     {
       id: "transitivas-resueltas",
-      etiqueta: "Ningún atributo depende de otro atributo que no sea la PK",
+      etiqueta: "Retiraste los atributos que no dependen del id de su tabla",
       ok: transitivasPendientes.length === 0,
-      detalle: `Pendientes de mover: ${lista(transitivasPendientes)}.`,
+      detalle: `Pendientes de retirar: ${lista(transitivasPendientes)}.`,
     },
     {
       id: "revision-3fn",
-      etiqueta: "Cerraste la revisión de dependencias transitivas",
+      etiqueta: "Cerraste la revisión de dependencias",
       ok: revisado,
-      detalle: "Resuelve al menos una o declara que todas dependían ya de la PK.",
+      detalle: "Retira al menos un atributo o declara que todos dependían ya del id.",
     },
   ];
 }
