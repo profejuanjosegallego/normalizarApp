@@ -256,6 +256,74 @@ body {
     line-height: 1.65;
     font-size: 0.93rem;
   }
+
+  /* ------------------------------------------------------------------------
+     Editor de SQL.
+
+     El texto coloreado se pinta en un <pre> y encima va un <textarea>
+     transparente. Las dos capas y la regleta de numeros comparten estas
+     medidas exactas: si se tocan, hay que tocarlas en la clase, no sueltas.
+     ---------------------------------------------------------------------- */
+  .sql-codigo {
+    font-family: ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, Consolas, monospace;
+    font-size: 0.8125rem;
+    line-height: 1.65;
+    tab-size: 2;
+    white-space: pre;
+    margin: 0;
+    border: 0;
+    padding: 0.75rem 0.9rem;
+    letter-spacing: 0;
+  }
+
+  .sql-cursor {
+    background: transparent;
+    color: transparent;
+    caret-color: var(--acento);
+    resize: none;
+    outline: none;
+  }
+
+  .sql-cursor::selection {
+    background: var(--acento-suave);
+  }
+
+  .sql-cursor::placeholder {
+    color: var(--texto-suave);
+    opacity: 0.8;
+  }
+
+  .sql-regleta {
+    font-family: ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, Consolas, monospace;
+    font-size: 0.8125rem;
+    line-height: 1.65;
+    padding: 0.75rem 0.5rem;
+    text-align: right;
+    color: var(--texto-suave);
+    user-select: none;
+  }
+
+  .sql-clave {
+    color: var(--acento);
+    font-weight: 700;
+  }
+
+  .sql-texto {
+    color: var(--ok);
+  }
+
+  .sql-numero {
+    color: var(--alerta);
+  }
+
+  .sql-comentario {
+    color: var(--texto-suave);
+    font-style: italic;
+  }
+
+  .sql-signo {
+    color: var(--texto-suave);
+  }
 }
 
 /* --------------------------------------------------------------------------

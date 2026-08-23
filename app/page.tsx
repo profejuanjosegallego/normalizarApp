@@ -335,10 +335,49 @@ export default function Inicio() {
           )}
         </section>
 
+        {/* Segunda parte del curso: escribir el modelo en SQL. */}
+        <section
+          className="tarjeta aparece mt-5 p-6"
+          style={{ animationDelay: "300ms" }}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="min-w-[16rem] flex-1">
+              <p className="titulo-seccion">Siguiente paso</p>
+              <h2 className="mt-1 text-xl font-bold">Ahora vamos a SQL</h2>
+              <p className="suave mt-2 max-w-lg text-sm leading-relaxed">
+                Ya tienes el modelo; ahora escríbelo en el lenguaje de la base de datos. Crea la
+                base, crea tablas con sus llaves primarias y foráneas, llena registros, consulta
+                con SELECT y borra. Se ejecuta de verdad, aquí mismo en tu navegador.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {["CREATE DATABASE", "CREATE TABLE", "INSERT", "SELECT", "DELETE"].map((s) => (
+                  <span key={s} className="chip font-mono">
+                    {s}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Link href="/sql" className="btn btn-primario px-6 py-3">
+                Practicar SQL
+              </Link>
+              {/* Guía de clase: es una página suelta en /public, no una ruta de la app. */}
+              <a
+                href="/tutorial-sql.html"
+                target="_blank"
+                rel="noreferrer"
+                className="btn px-6 py-2.5"
+              >
+                Ver tutorial
+              </a>
+            </div>
+          </div>
+        </section>
+
         {guardados.length > 0 ? (
           <section
             className="tarjeta aparece mt-5 p-6"
-            style={{ animationDelay: "320ms" }}
+            style={{ animationDelay: "360ms" }}
           >
             <h2 className="text-base font-bold">Tu trabajo guardado en este navegador</h2>
             <ul className="mt-4 space-y-2">

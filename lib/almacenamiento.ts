@@ -1,3 +1,4 @@
+import type { Estado } from "./sqlmotor";
 import type { Ejercicio, Trabajo } from "./tipos";
 
 const PREFIJO = "bdnorm:trabajo:";
@@ -156,6 +157,58 @@ export function guardarPublicacion(ejercicioId: string, publicacion: Publicacion
 
 export function cargarPublicacion(ejercicioId: string): Publicacion | null {
   return leerPublicados()[ejercicioId] ?? null;
+}
+
+/* --------------------------------------------------------------------------
+ * Practica de SQL
+ *
+ * La base de datos que arma el estudiante y el texto del editor viven aqui, en
+ * su navegador, igual que el resto del taller. Nada de esto viaja al servidor.
+ * ----------------------------------------------------------------------- */
+
+const SQL_ESTADO = "bdnorm:sql:estado";
+const SQL_EDITOR = "bdnorm:sql:editor";
+
+export function guardarEstadoSQL(estado: Estado): void {
+  if (!disponible()) return;
+  try {
+    localStorage.setItem(SQL_ESTADO, JSON.stringify(estado));
+  } catch {
+    // Cuota llena: el estudiante puede seguir trabajando en esta sesion.
+  }
+}
+
+export function cargarEstadoSQL(): Estado | null {
+  if (!disponible()) return null;
+  try {
+    const crudo = localStorage.getItem(SQL_ESTADO);
+    if (!crudo) return null;
+    const dato = JSON.parse(crudo) as Estado;
+    if (!dato || !dato.servidor || !Array.isArray(dato.servidor.bases)) return null;
+    return { servidor: dato.servidor, logros: Array.isArray(dato.logros) ? dato.logros : [] };
+  } catch {
+    return null;
+  }
+}
+
+export function guardarEditorSQL(texto: string): void {
+  if (!disponible()) return;
+  try {
+    localStorage.setItem(SQL_EDITOR, texto);
+  } catch {
+    // sin efecto
+  }
+}
+
+export function cargarEditorSQL(): string {
+  if (!disponible()) return "";
+  return localStorage.getItem(SQL_EDITOR) ?? "";
+}
+
+export function olvidarSQL(): void {
+  if (!disponible()) return;
+  localStorage.removeItem(SQL_ESTADO);
+  localStorage.removeItem(SQL_EDITOR);
 }
 
 export function descargarJSON(nombreArchivo: string, dato: unknown): void {

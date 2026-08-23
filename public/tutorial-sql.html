@@ -1,0 +1,2238 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Guía de clase de SQL en MySQL: DDL, DML y DQL con sintaxis, trampas frecuentes y ejercicios propuestos.">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<title>Cuaderno de SQL &middot; Bases de Datos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+/* ==========================================================================
+   Cuaderno de SQL
+   Paleta: tinta verde sobre papel. Un solo mundo visual, claro, deliberado:
+   el de un cuaderno de clase. Por eso no hay tema oscuro y cada color se
+   pinta explícito, para que la página se sostenga sobre cualquier fondo.
+   ========================================================================== */
+
+:root {
+  --tinta:        #0E1C16;
+  --tinta-2:      #35463D;
+  --suave:        #66756B;
+  --tenue:        #8B978F;
+
+  --papel:        #F7F9F5;
+  --papel-2:      #EDF2E9;
+  --papel-3:      #E2EBDE;
+  --borde:        #D3DFD2;
+  --borde-2:      #BCCDBB;
+
+  --bosque:       #11493A;
+  --hoja:         #1E8A63;
+  --brote:        #57C89A;
+  --brote-suave:  #DFF3E9;
+
+  --arcilla:      #94571A;
+  --arcilla-suave:#FAEFDC;
+
+  --codigo:       #0C2019;
+  --codigo-borde: #1E4034;
+
+  --display: "Zilla Slab", Georgia, "Times New Roman", serif;
+  --texto:   "Source Sans 3", ui-sans-serif, system-ui, "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono:    "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--papel);
+  color: var(--tinta);
+  font-family: var(--texto);
+  font-size: 17px;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Papel rayado muy tenue: da la textura de cuaderno sin ruido. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: linear-gradient(var(--papel-2) 1px, transparent 1px);
+  background-size: 100% 34px;
+  opacity: .5;
+}
+
+.capa { position: relative; z-index: 1; }
+
+/* ------------------------------------------------------------------ Barra */
+
+.progreso {
+  position: fixed;
+  top: 0; left: 0;
+  height: 3px;
+  width: 0;
+  background: linear-gradient(90deg, var(--bosque), var(--hoja) 60%, var(--brote));
+  z-index: 60;
+}
+
+/* ------------------------------------------------------------- Tipografía */
+
+h1, h2, h3, h4 {
+  font-family: var(--display);
+  font-weight: 600;
+  color: var(--bosque);
+  text-wrap: balance;
+  margin: 0;
+  line-height: 1.15;
+}
+
+p { margin: 0 0 1.05em; }
+p:last-child { margin-bottom: 0; }
+
+a { color: var(--hoja); }
+
+.rotulo {
+  font-family: var(--mono);
+  font-size: .69rem;
+  font-weight: 600;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--hoja);
+}
+
+strong { font-weight: 700; color: var(--bosque); }
+em { color: var(--tinta-2); }
+
+code:not(pre code) {
+  font-family: var(--mono);
+  font-size: .86em;
+  background: var(--brote-suave);
+  color: var(--bosque);
+  padding: .1em .38em;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- Iconos */
+
+.ic {
+  width: 1.15em;
+  height: 1.15em;
+  flex: none;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vertical-align: -.18em;
+}
+
+/* ---------------------------------------------------------------- Portada */
+
+.portada {
+  padding: 76px 0 54px;
+  border-bottom: 1px solid var(--borde);
+}
+
+.portada h1 {
+  font-size: clamp(2.9rem, 8vw, 4.9rem);
+  font-weight: 700;
+  letter-spacing: -.022em;
+  margin: .18em 0 .28em;
+}
+
+.portada h1 .sigla {
+  display: inline-block;
+  background: linear-gradient(100deg, var(--bosque) 20%, var(--hoja) 48%, var(--bosque) 76%);
+  background-size: 220% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: correr 9s linear infinite;
+}
+
+.portada .bajada {
+  font-size: 1.16rem;
+  color: var(--tinta-2);
+  max-width: 34em;
+}
+
+.firma {
+  margin-top: 26px;
+  font-size: .88rem;
+  color: var(--suave);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+
+.firma .punto { color: var(--borde-2); }
+
+/* Terminal de la portada */
+
+.terminal {
+  margin-top: 34px;
+  background: var(--codigo);
+  border: 1px solid var(--codigo-borde);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 18px 40px -22px rgba(14, 42, 30, .55);
+  max-width: 640px;
+}
+
+.terminal .cabecera {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--codigo-borde);
+}
+
+.terminal .bolita { width: 9px; height: 9px; border-radius: 50%; background: #2C4F41; }
+.terminal .bolita:first-child { background: var(--brote); }
+
+.terminal .titulo {
+  font-family: var(--mono);
+  font-size: .7rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #6E8C7F;
+  margin-left: 6px;
+}
+
+.terminal .lineas {
+  padding: 16px 18px 20px;
+  font-family: var(--mono);
+  font-size: .84rem;
+  line-height: 1.9;
+  color: #CFE6DA;
+  min-height: 8.4em;
+}
+
+.terminal .prompt { color: var(--brote); margin-right: .55em; }
+.terminal .cursor {
+  display: inline-block;
+  width: .55em;
+  height: 1.05em;
+  background: var(--brote);
+  vertical-align: -.18em;
+  animation: latir 1.05s steps(2) infinite;
+}
+.terminal .salida { color: #7FA593; }
+
+/* --------------------------------------------------------------- Esqueleto */
+
+.pagina {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 26px;
+}
+
+.cuerpo {
+  display: grid;
+  grid-template-columns: 216px minmax(0, 1fr);
+  gap: 60px;
+  align-items: start;
+  padding: 54px 0 90px;
+}
+
+/* --------------------------------------------------------------- Índice */
+
+.indice {
+  position: sticky;
+  top: 26px;
+  border-left: 1px solid var(--borde);
+  padding-left: 18px;
+}
+
+.indice .rotulo { display: block; margin-bottom: 14px; }
+
+.indice a {
+  display: flex;
+  gap: 9px;
+  align-items: baseline;
+  text-decoration: none;
+  color: var(--suave);
+  font-size: .875rem;
+  padding: 5px 0;
+  transition: color .18s ease, transform .18s ease;
+}
+
+.indice a:hover { color: var(--hoja); transform: translateX(3px); }
+
+.indice a .num {
+  font-family: var(--mono);
+  font-size: .72rem;
+  color: var(--tenue);
+  min-width: 1.1em;
+}
+
+.indice a.activo { color: var(--bosque); font-weight: 600; }
+.indice a.activo .num { color: var(--hoja); }
+
+/* ---------------------------------------------------------------- Columna */
+
+.columna { max-width: 74ch; }
+
+section.tramo { padding-top: 8px; margin-bottom: 74px; scroll-margin-top: 24px; }
+
+.encabezado-tramo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--bosque);
+  margin-bottom: 26px;
+}
+
+.encabezado-tramo .marca {
+  display: grid;
+  place-items: center;
+  width: 34px; height: 34px;
+  flex: none;
+  border-radius: 9px;
+  background: var(--bosque);
+  color: var(--papel);
+}
+.encabezado-tramo .marca .ic { width: 19px; height: 19px; stroke-width: 1.85; }
+
+.encabezado-tramo h2 { font-size: 1.72rem; flex: 1; }
+
+.encabezado-tramo .paso {
+  font-family: var(--mono);
+  font-size: .74rem;
+  font-weight: 600;
+  letter-spacing: .12em;
+  color: var(--tenue);
+}
+
+h3.sub {
+  font-size: 1.16rem;
+  margin: 36px 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+h3.sub .ic { color: var(--hoja); width: 1.05em; height: 1.05em; }
+
+/* ---------------------------------------------------------------- Bloques */
+
+.bloque {
+  margin: 18px 0 22px;
+  border-radius: 11px;
+  overflow: hidden;
+  border: 1px solid var(--codigo-borde);
+  background: var(--codigo);
+  box-shadow: 0 14px 30px -24px rgba(14, 42, 30, .6);
+}
+
+.bloque .barra {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px 9px 14px;
+  border-bottom: 1px solid var(--codigo-borde);
+}
+
+.bloque .sello {
+  font-family: var(--mono);
+  font-size: .64rem;
+  font-weight: 600;
+  letter-spacing: .13em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(87, 200, 154, .16);
+  color: var(--brote);
+}
+
+.bloque .nota {
+  font-size: .78rem;
+  color: #7FA593;
+  flex: 1;
+  min-width: 0;
+}
+
+.bloque .copiar {
+  font-family: var(--mono);
+  font-size: .68rem;
+  letter-spacing: .08em;
+  color: #7FA593;
+  background: transparent;
+  border: 1px solid var(--codigo-borde);
+  border-radius: 5px;
+  padding: 3px 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: color .18s ease, border-color .18s ease, background .18s ease;
+}
+.bloque .copiar:hover { color: var(--brote); border-color: var(--brote); background: rgba(87,200,154,.08); }
+.bloque .copiar .ic { width: 12px; height: 12px; }
+
+.bloque pre {
+  margin: 0;
+  padding: 15px 16px 17px;
+  overflow-x: auto;
+  font-family: var(--mono);
+  font-size: .82rem;
+  line-height: 1.75;
+  color: #D5E9DD;
+  tab-size: 2;
+}
+
+/* Coloreado */
+.k  { color: #6FD3A4; font-weight: 500; }   /* palabras clave */
+.t  { color: #8FC7F0; }                      /* tipos de dato */
+.f  { color: #E3C77E; }                      /* funciones */
+.s  { color: #F0A98C; }                      /* cadenas */
+.n  { color: #C9A6F5; }                      /* números */
+.c  { color: #5F7F70; font-style: italic; }  /* comentarios */
+.p  { color: #7C9C8C; }                      /* signos */
+
+/* ------------------------------------------------------------------ Avisos */
+
+.aviso {
+  display: flex;
+  gap: 13px;
+  padding: 15px 17px;
+  border-radius: 10px;
+  margin: 22px 0;
+  font-size: .95rem;
+  line-height: 1.58;
+  border: 1px solid;
+}
+.aviso .ic { width: 20px; height: 20px; margin-top: 2px; }
+.aviso .cuerpo-aviso { min-width: 0; }
+.aviso .titulo-aviso { font-weight: 700; display: block; margin-bottom: 3px; }
+
+.aviso.truco   { background: var(--brote-suave);  border-color: #B9E4CE; color: var(--tinta); }
+.aviso.truco .ic, .aviso.truco .titulo-aviso { color: var(--bosque); }
+
+.aviso.cuidado { background: var(--arcilla-suave); border-color: #EAD6B2; color: var(--tinta); }
+.aviso.cuidado .ic, .aviso.cuidado .titulo-aviso { color: var(--arcilla); }
+
+/* ------------------------------------------------------------------ Fichas */
+
+.rejilla {
+  display: grid;
+  gap: 14px;
+  margin: 22px 0;
+}
+.rejilla.dos { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+
+.ficha {
+  background: #FFFFFF;
+  border: 1px solid var(--borde);
+  border-radius: 11px;
+  padding: 16px 17px;
+  transition: transform .22s cubic-bezier(.2,.7,.3,1), box-shadow .22s ease, border-color .22s ease;
+}
+.ficha:hover {
+  transform: translateY(-3px);
+  border-color: var(--borde-2);
+  box-shadow: 0 16px 30px -24px rgba(14, 73, 58, .5);
+}
+
+.ficha .cabeza {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 8px;
+}
+.ficha .cabeza .ic { color: var(--hoja); width: 19px; height: 19px; }
+.ficha .cabeza .sigla {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: .95rem;
+  color: var(--bosque);
+  letter-spacing: .04em;
+}
+.ficha .largo {
+  display: block;
+  font-size: .73rem;
+  color: var(--tenue);
+  letter-spacing: .01em;
+}
+.ficha p { font-size: .89rem; color: var(--tinta-2); margin: 9px 0 .7em; }
+
+.ficha .comandos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.ficha .comandos span {
+  font-family: var(--mono);
+  font-size: .68rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--papel-2);
+  color: var(--tinta-2);
+  border: 1px solid var(--borde);
+}
+
+/* ------------------------------------------------------------------ Tablas */
+
+.marco-tabla {
+  overflow-x: auto;
+  margin: 20px 0;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  background: #FFFFFF;
+}
+
+table.datos {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .87rem;
+}
+
+table.datos th {
+  text-align: left;
+  font-family: var(--mono);
+  font-size: .7rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--bosque);
+  background: var(--papel-2);
+  padding: 9px 13px;
+  border-bottom: 1px solid var(--borde);
+  white-space: nowrap;
+}
+
+table.datos td {
+  padding: 9px 13px;
+  border-bottom: 1px solid var(--papel-3);
+  color: var(--tinta-2);
+  vertical-align: top;
+}
+table.datos tr:last-child td { border-bottom: 0; }
+table.datos tbody tr { transition: background .15s ease; }
+table.datos tbody tr:hover { background: var(--papel); }
+table.datos td code, table.datos th code { white-space: nowrap; }
+table.datos .num-col { font-variant-numeric: tabular-nums; }
+
+/* --------------------------------------------------------------- Secuencia */
+
+.secuencia {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 22px 0;
+}
+
+.escalon {
+  background: #FFFFFF;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  padding: 13px 14px;
+}
+.escalon .orden {
+  font-family: var(--mono);
+  font-size: .68rem;
+  letter-spacing: .1em;
+  color: var(--hoja);
+  display: block;
+  margin-bottom: 4px;
+}
+.escalon .clave {
+  font-family: var(--mono);
+  font-size: .92rem;
+  font-weight: 600;
+  color: var(--bosque);
+  display: block;
+  margin-bottom: 4px;
+}
+.escalon .que { font-size: .82rem; color: var(--suave); line-height: 1.45; }
+
+/* -------------------------------------------------------------- Ejercicios */
+
+.reto {
+  border: 1px solid var(--borde);
+  border-left: 3px solid var(--hoja);
+  border-radius: 10px;
+  background: #FFFFFF;
+  padding: 17px 19px;
+  margin: 16px 0;
+}
+
+.reto .encabeza {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.reto .numero {
+  font-family: var(--mono);
+  font-size: .74rem;
+  font-weight: 600;
+  letter-spacing: .1em;
+  color: var(--hoja);
+}
+.reto .nivel {
+  font-family: var(--mono);
+  font-size: .66rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--tenue);
+}
+.reto p { font-size: .95rem; margin-bottom: .6em; }
+.reto ol, .reto ul { margin: .4em 0 .2em; padding-left: 1.25em; font-size: .95rem; }
+.reto li { margin-bottom: .34em; }
+
+details.pista {
+  margin-top: 12px;
+  border-top: 1px dashed var(--borde-2);
+  padding-top: 11px;
+}
+details.pista summary {
+  cursor: pointer;
+  font-size: .84rem;
+  font-weight: 600;
+  color: var(--hoja);
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  user-select: none;
+}
+details.pista summary::-webkit-details-marker { display: none; }
+details.pista summary .ic { width: 15px; height: 15px; transition: transform .22s ease; }
+details.pista[open] summary .ic { transform: rotate(90deg); }
+details.pista .contenido { margin-top: 10px; font-size: .9rem; color: var(--tinta-2); }
+details.pista[open] .contenido { animation: abrir .32s ease both; }
+
+/* ------------------------------------------------------------------ Listas */
+
+ul.puntos { margin: 14px 0; padding: 0; list-style: none; }
+ul.puntos li {
+  position: relative;
+  padding-left: 24px;
+  margin-bottom: 9px;
+  font-size: .96rem;
+}
+ul.puntos li::before {
+  content: "";
+  position: absolute;
+  left: 4px; top: .62em;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--brote);
+}
+
+/* ------------------------------------------------------------------- Cierre */
+
+.cierre {
+  border-top: 1px solid var(--borde);
+  padding: 34px 0 60px;
+  text-align: center;
+  color: var(--suave);
+  font-size: .86rem;
+}
+.cierre .nombre { font-family: var(--display); font-size: 1rem; color: var(--bosque); font-weight: 600; }
+
+/* --------------------------------------------------------------- Animación */
+
+@keyframes surgir {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes correr { to { background-position: 220% center; } }
+@keyframes latir  { 50% { opacity: 0; } }
+@keyframes abrir  { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
+.revelar { opacity: 0; }
+.revelar.visible {
+  animation: surgir .68s cubic-bezier(.2, .72, .28, 1) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+:focus-visible {
+  outline: 2px solid var(--hoja);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+/* Al imprimir no hay scroll que dispare nada: todo tiene que verse. */
+@media print {
+  .revelar { opacity: 1; animation: none; }
+  .progreso, .indice, .bloque .copiar { display: none; }
+  body::before { display: none; }
+  details.pista { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+  .revelar { opacity: 1; }
+  .portada h1 .sigla { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: var(--bosque); }
+}
+
+/* ---------------------------------------------------------------- Angosto */
+
+@media (max-width: 900px) {
+  body { font-size: 16px; }
+  .cuerpo { grid-template-columns: minmax(0, 1fr); gap: 0; padding-top: 34px; }
+  .indice {
+    position: static;
+    border-left: 0;
+    border-bottom: 1px solid var(--borde);
+    padding: 0 0 18px;
+    margin-bottom: 34px;
+  }
+  .indice .lista { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+  .indice a { padding: 3px 0; }
+  .portada { padding: 48px 0 38px; }
+}
+</style>
+</head>
+<body>
+<!-- Biblioteca de iconos. Trazo, no relleno; nunca emojis. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="ic-base" viewBox="0 0 24 24">
+      <ellipse cx="12" cy="5.2" rx="7.6" ry="2.9"/>
+      <path d="M4.4 5.2v6c0 1.6 3.4 2.9 7.6 2.9s7.6-1.3 7.6-2.9v-6"/>
+      <path d="M4.4 11.2v6c0 1.6 3.4 2.9 7.6 2.9s7.6-1.3 7.6-2.9v-6"/>
+    </symbol>
+    <symbol id="ic-tabla" viewBox="0 0 24 24">
+      <rect x="3.2" y="4.2" width="17.6" height="15.6" rx="2.2"/>
+      <path d="M3.2 9.4h17.6M9.4 9.4v10.4"/>
+    </symbol>
+    <symbol id="ic-capas" viewBox="0 0 24 24">
+      <path d="M12 3.2l8.6 4.6L12 12.4 3.4 7.8 12 3.2z"/>
+      <path d="M3.4 12.6L12 17.2l8.6-4.6"/>
+      <path d="M3.4 17l8.6 4.6 8.6-4.6"/>
+    </symbol>
+    <symbol id="ic-terminal" viewBox="0 0 24 24">
+      <rect x="3.2" y="4.2" width="17.6" height="15.6" rx="2.2"/>
+      <path d="M7.4 9.6l2.8 2.6-2.8 2.6M13.4 15.2h4"/>
+    </symbol>
+    <symbol id="ic-mas" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="8.6"/>
+      <path d="M12 8v8M8 12h8"/>
+    </symbol>
+    <symbol id="ic-lapiz" viewBox="0 0 24 24">
+      <path d="M4.2 19.8h4l11-11a2.7 2.7 0 0 0-4-4l-11 11v4z"/>
+      <path d="M14.4 5.6l4 4"/>
+    </symbol>
+    <symbol id="ic-papelera" viewBox="0 0 24 24">
+      <path d="M4 6.8h16"/>
+      <path d="M9.6 6.8V5.2a1.2 1.2 0 0 1 1.2-1.2h2.4a1.2 1.2 0 0 1 1.2 1.2v1.6"/>
+      <path d="M6.4 6.8l.9 12.2a2 2 0 0 0 2 1.8h5.4a2 2 0 0 0 2-1.8l.9-12.2"/>
+    </symbol>
+    <symbol id="ic-lupa" viewBox="0 0 24 24">
+      <circle cx="10.8" cy="10.8" r="6.2"/>
+      <path d="M20 20l-4.8-4.8"/>
+    </symbol>
+    <symbol id="ic-llave" viewBox="0 0 24 24">
+      <circle cx="8" cy="15.4" r="3.8"/>
+      <path d="M10.8 12.8l8.4-8.4M16.4 7.2l2.2 2.2M13.8 9.8l2.2 2.2"/>
+    </symbol>
+    <symbol id="ic-enlace" viewBox="0 0 24 24">
+      <path d="M10.2 13.4a4.6 4.6 0 0 0 6.6 0l2-2a4.6 4.6 0 1 0-6.6-6.5l-1.1 1.1"/>
+      <path d="M13.8 10.6a4.6 4.6 0 0 0-6.6 0l-2 2a4.6 4.6 0 1 0 6.6 6.5l1.1-1.1"/>
+    </symbol>
+    <symbol id="ic-alerta" viewBox="0 0 24 24">
+      <path d="M12 3.6l9 15.8H3l9-15.8z"/>
+      <path d="M12 9.6v4.2M12 16.8h.01"/>
+    </symbol>
+    <symbol id="ic-bombilla" viewBox="0 0 24 24">
+      <path d="M9.4 18.6h5.2M10.4 21.2h3.2"/>
+      <path d="M12 2.8a6.2 6.2 0 0 0-3.6 11.3c.5.4.6 1 .6 1.6v.9h6v-.9c0-.6.1-1.2.6-1.6A6.2 6.2 0 0 0 12 2.8z"/>
+    </symbol>
+    <symbol id="ic-visto" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="8.6"/>
+      <path d="M8.2 12.2l2.6 2.6 5-5.4"/>
+    </symbol>
+    <symbol id="ic-filtro" viewBox="0 0 24 24">
+      <path d="M3.8 5h16.4l-6.4 7.6v6.2l-3.6 1.8v-8L3.8 5z"/>
+    </symbol>
+    <symbol id="ic-orden" viewBox="0 0 24 24">
+      <path d="M7 4.4v15.2M7 19.6l-3-3M7 19.6l3-3"/>
+      <path d="M17 19.6V4.4M17 4.4l-3 3M17 4.4l3 3"/>
+    </symbol>
+    <symbol id="ic-candado" viewBox="0 0 24 24">
+      <rect x="4.8" y="10.6" width="14.4" height="9.2" rx="2.2"/>
+      <path d="M8.2 10.6V7.8a3.8 3.8 0 0 1 7.6 0v2.8"/>
+    </symbol>
+    <symbol id="ic-transaccion" viewBox="0 0 24 24">
+      <path d="M4 8.6h13.4l-3.2-3.2"/>
+      <path d="M20 15.4H6.6l3.2 3.2"/>
+    </symbol>
+    <symbol id="ic-copiar" viewBox="0 0 24 24">
+      <rect x="9" y="9" width="11.2" height="11.2" rx="2.2"/>
+      <path d="M5 14.6V5.8a2 2 0 0 1 2-2h8.4"/>
+    </symbol>
+    <symbol id="ic-flecha" viewBox="0 0 24 24">
+      <path d="M4.8 12h14.4M13.4 6.2l5.8 5.8-5.8 5.8"/>
+    </symbol>
+    <symbol id="ic-libro" viewBox="0 0 24 24">
+      <path d="M12 6.4C10.4 4.9 8.4 4.4 4 4.4v13.2c4.4 0 6.4.5 8 2 1.6-1.5 3.6-2 8-2V4.4c-4.4 0-6.4.5-8 2z"/>
+      <path d="M12 6.4v13.2"/>
+    </symbol>
+    <symbol id="ic-lista" viewBox="0 0 24 24">
+      <path d="M8.4 6h11.4M8.4 12h11.4M8.4 18h11.4"/>
+      <path d="M4.4 6h.02M4.4 12h.02M4.4 18h.02"/>
+    </symbol>
+    <symbol id="ic-rayo" viewBox="0 0 24 24">
+      <path d="M13.2 2.8L5 13.8h5.8L9.6 21.2l8.4-11.2h-6l1.2-7.2z"/>
+    </symbol>
+    <symbol id="ic-reloj" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="8.6"/>
+      <path d="M12 7v5.2l3.2 2"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="progreso" id="progreso"></div>
+
+<div class="capa">
+
+  <!-- ===================================================== Portada ===== -->
+  <header class="portada">
+    <div class="pagina">
+      <span class="rotulo revelar">Bases de datos &middot; Guía de clase</span>
+      <h1 class="revelar" style="--i:1">Cuaderno de <span class="sigla">SQL</span></h1>
+      <p class="bajada revelar" style="--i:2">
+        El modelo ya está normalizado. Ahora hay que decírselo al motor. Esta guía recorre el
+        lenguaje completo: definir la estructura, mover los datos y consultarlos, con la sintaxis
+        exacta, las trampas donde todo el mundo se cae y ejercicios para practicar.
+      </p>
+
+      <div class="terminal revelar" style="--i:3" aria-hidden="true">
+        <div class="cabecera">
+          <span class="bolita"></span><span class="bolita"></span><span class="bolita"></span>
+          <span class="titulo">biblioteca &mdash; mysql</span>
+        </div>
+        <div class="lineas" id="terminal"></div>
+      </div>
+
+      <p class="firma revelar" style="--i:4">
+        <span>Dialecto MySQL / MariaDB</span>
+        <span class="punto">&bull;</span>
+        <span>Nueve secciones</span>
+        <span class="punto">&bull;</span>
+        <span>Doce ejercicios propuestos</span>
+      </p>
+    </div>
+  </header>
+
+  <div class="pagina">
+    <div class="cuerpo">
+
+      <!-- ================================================== Índice ===== -->
+      <nav class="indice" aria-label="Contenido">
+        <span class="rotulo">Contenido</span>
+        <div class="lista">
+          <a href="#s1"><span class="num">1</span> Qué es SQL</a>
+          <a href="#s2"><span class="num">2</span> Los sublenguajes</a>
+          <a href="#s3"><span class="num">3</span> DDL: la estructura</a>
+          <a href="#s4"><span class="num">4</span> Restricciones</a>
+          <a href="#s5"><span class="num">5</span> DML: los datos</a>
+          <a href="#s6"><span class="num">6</span> DQL: consultar</a>
+          <a href="#s7"><span class="num">7</span> Orden de ejecución</a>
+          <a href="#s8"><span class="num">8</span> Trucos y trampas</a>
+          <a href="#s9"><span class="num">9</span> Ejercicios</a>
+        </div>
+      </nav>
+
+      <main class="columna">
+
+        <!-- ============================================ 1. Qué es SQL ==== -->
+        <section class="tramo" id="s1">
+          <div class="encabezado-tramo revelar">
+            <span class="marca"><svg class="ic"><use href="#ic-base"></use></svg></span>
+            <h2>Qué es SQL</h2>
+            <span class="paso">01</span>
+          </div>
+
+          <div class="revelar">
+            <p>
+              <strong>SQL</strong> (<em>Structured Query Language</em>) es el idioma con el que se le
+              habla a una base de datos relacional. No es un lenguaje de programación de propósito
+              general: no tiene pantallas ni botones. Es un lenguaje <strong>declarativo</strong>, y
+              esa es la idea que hay que interiorizar primero.
+            </p>
+            <p>
+              En un lenguaje imperativo uno dice <em>cómo</em> hacer algo: recorre esta lista, compara
+              cada elemento, guarda los que cumplan. En SQL uno dice <em>qué</em> quiere, y el motor
+              decide cómo conseguirlo:
+            </p>
+          </div>
+
+          <figure class="bloque revelar">
+            <div class="barra">
+              <span class="sello">IDEA</span>
+              <span class="nota">Se pide el resultado, no el procedimiento</span>
+            </div>
+            <pre><code>SELECT titulo FROM libro WHERE anio &gt; 2020;</code></pre>
+          </figure>
+
+          <div class="revelar">
+            <p>
+              Nadie le dijo al motor que abriera el archivo, que recorriera fila por fila ni en qué
+              orden. Se le describió el resultado y él se las arregla.
+            </p>
+          </div>
+
+          <h3 class="sub revelar"><svg class="ic"><use href="#ic-capas"></use></svg> Tres cosas que se confunden</h3>
+
+          <div class="marco-tabla revelar">
+            <table class="datos">
+              <thead>
+                <tr><th>Nombre</th><th>Qué es</th><th>Ejemplos</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>SQL</strong></td>
+                  <td>El lenguaje. Está normalizado por la ISO, así que lo básico funciona igual en todas partes.</td>
+                  <td>Un estándar, no un programa</td>
+                </tr>
+                <tr>
+                  <td><strong>El motor</strong></td>
+                  <td>El programa que entiende SQL y guarda los datos en disco. Cada uno agrega su propio dialecto.</td>
+                  <td>MySQL, MariaDB, PostgreSQL, SQL&nbsp;Server, Oracle, SQLite</td>
+                </tr>
+                <tr>
+                  <td><strong>La base de datos</strong></td>
+                  <td>El contenedor concreto donde viven tus tablas dentro de un motor.</td>
+                  <td><code>biblioteca</code>, <code>nomina</code>, <code>tienda</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="aviso truco revelar">
+            <svg class="ic"><use href="#ic-bombilla"></use></svg>
+            <div class="cuerpo-aviso">
+              <span class="titulo-aviso">Sobre el dialecto</span>
+              Todo lo de esta guía está escrito en <strong>MySQL / MariaDB</strong>. Un
+              <code>SELECT</code> se escribe igual en cualquier motor, pero detalles como
+              <code>AUTO_INCREMENT</code> o <code>LIMIT</code> cambian de nombre entre uno y otro.
+              Cuando algo sea propio de MySQL, aquí se dice.
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================= 2. Sublenguajes ==== -->
+        <section class="tramo" id="s2">
+          <div class="encabezado-tramo revelar">
+            <span class="marca"><svg class="ic"><use href="#ic-capas"></use></svg></span>
+            <h2>Los sublenguajes</h2>
+            <span class="paso">02</span>
+          </div>
+
+          <div class="revelar">
+            <p>
+              SQL no es una lista plana de instrucciones: está dividido en familias, según lo que
+              cada instrucción toca. Saber a qué familia pertenece lo que estás escribiendo te dice
+              de antemano <strong>qué tan peligroso es</strong> y <strong>si se puede deshacer</strong>.
+            </p>
+          </div>
+
+          <div class="rejilla dos">
+            <div class="ficha revelar" style="--i:0">
+              <div class="cabeza">
+                <svg class="ic"><use href="#ic-tabla"></use></svg>
+                <span class="sigla">DDL</span>
+              </div>
+              <span class="largo">Data Definition Language</span>
+              <p>
+                Define la <strong>estructura</strong>: bases, tablas, columnas, llaves. No toca el
+                contenido, dibuja el molde.
+              </p>
+              <div class="comandos">
+                <span>CREATE</span><span>ALTER</span><span>DROP</span><span>TRUNCATE</span><span>RENAME</span>
+              </div>
+            </div>
+
+            <div class="ficha revelar" style="--i:1">
+              <div class="cabeza">
+                <svg class="ic"><use href="#ic-lapiz"></use></svg>
+                <span class="sigla">DML</span>
+              </div>
+              <span class="largo">Data Manipulation Language</span>
+              <p>
+                Mueve el <strong>contenido</strong>: mete filas, las cambia, las borra. La estructura
+                queda intacta.
+              </p>
+              <div class="comandos">
+                <span>INSERT</span><span>UPDATE</span><span>DELETE</span>
+              </div>
+            </div>
+
+            <div class="ficha revelar" style="--i:2">
+              <div class="cabeza">
+                <svg class="ic"><use href="#ic-lupa"></use></svg>
+                <span class="sigla">DQL</span>
+              </div>
+              <span class="largo">Data Query Language</span>
+              <p>
+                <strong>Consulta</strong> sin modificar nada. Es una sola instrucción, y es la que
+                más vas a escribir en tu vida.
+              </p>
+              <div class="comandos">
+                <span>SELECT</span>
+              </div>
+            </div>
+
+            <div class="ficha revelar" style="--i:3">
+              <div class="cabeza">
+                <svg class="ic"><use href="#ic-candado"></use></svg>
+                <span class="sigla">DCL</span>
+              </div>
+              <span class="largo">Data Control Language</span>
+              <p>
+                Reparte <strong>permisos</strong>: quién puede consultar, quién puede borrar. Es del
+                administrador, no del programador.
+              </p>
+              <div class="comandos">
+                <span>GRANT</span><span>REVOKE</span>
+              </div>
+            </div>
+
+            <div class="ficha revelar" style="--i:4">
+              <div class="cabeza">
+                <svg class="ic"><use href="#ic-transaccion"></use></svg>
+                <span class="sigla">TCL</span>
+              </div>
+              <span class="largo">Transaction Control Language</span>
+              <p>
+                Agrupa varios cambios en un <strong>todo o nada</strong>. Si algo falla a mitad de
+                camino, se devuelve completo.
+              </p>
+              <div class="comandos">
+                <span>START TRANSACTION</span><span>COMMIT</span><span>ROLLBACK</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="aviso cuidado revelar">
+            <svg class="ic"><use href="#ic-alerta"></use></svg>
+            <div class="cuerpo-aviso">
+              <span class="titulo-aviso">La diferencia que cuesta caro</span>
+              El DML se puede deshacer dentro de una transacción con <code>ROLLBACK</code>. El
+              <strong>DDL no</strong>: en MySQL, un <code>DROP TABLE</code> confirma la transacción
+              sola y se lleva la tabla para siempre. Antes de escribir <code>DROP</code>, respira.
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================= 3. DDL ===== -->
+        <section class="tramo" id="s3">
+          <div class="encabezado-tramo revelar">
+            <span class="marca"><svg class="ic"><use href="#ic-tabla"></use></svg></span>
+            <h2>DDL: la estructura</h2>
+            <span class="paso">03</span>
+          </div>
+
+          <div class="revelar">
+            <p>
+              Vamos a construir una biblioteca completa. El mismo ejemplo va a acompañar toda la
+              guía: cuatro tablas, dos relaciones uno a muchos.
+            </p>
+          </div>
+
+          <h3 class="sub revelar"><svg class="ic"><use href="#ic-base"></use></svg> Crear la base y entrar en ella</h3>
+
+          <figure class="bloque revelar">
+            <div class="barra">
+              <span class="sello">DDL</span>
+              <span class="nota">Sin USE, el motor no sabe dónde poner las tablas</span>
+            </div>
+            <pre><code>CREATE DATABASE biblioteca;
+USE biblioteca;</code></pre>
+          </figure>
+
+          <div class="revelar">
+            <p>
+              <code>CREATE DATABASE</code> crea el contenedor; <code>USE</code> lo vuelve el actual.
+              Son dos cosas distintas y hay que hacer las dos. El error más frecuente del primer día
+              es crear la base y ponerse a crear tablas sin haber entrado en ella.
+            </p>
+          </div>
+
+          <h3 class="sub revelar"><svg class="ic"><use href="#ic-lista"></use></svg> Los tipos de dato</h3>
+
+          <div class="revelar">
+            <p>
+              Cada columna necesita un tipo. Elegirlo no es un trámite: es la primera regla de
+              validación que va a tener tu base, y funciona incluso cuando el programador de la
+              aplicación se distraiga.
+            </p>
+          </div>
+
+          <div class="marco-tabla revelar">
+            <table class="datos">
+              <thead>
+                <tr><th>Tipo</th><th>Para qué</th><th>Ejemplo de valor</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>INT</code></td><td>Números enteros: identificadores, cantidades, años</td><td class="num-col">1998</td></tr>
+                <tr><td><code>DECIMAL(10,2)</code></td><td>Dinero y medidas exactas. Diez dígitos, dos de ellos decimales</td><td class="num-col">85000.50</td></tr>
+                <tr><td><code>VARCHAR(n)</code></td><td>Texto de largo variable, hasta <code>n</code> caracteres. Ocupa lo que use</td><td>'Gabriel García Márquez'</td></tr>
+                <tr><td><code>CHAR(n)</code></td><td>Texto de largo fijo. Siempre ocupa <code>n</code>. Para códigos: país, sexo</td><td>'CO'</td></tr>
+                <tr><td><code>TEXT</code></td><td>Texto largo: una reseña, una descripción, un comentario</td><td>'Novela publicada en...'</td></tr>
+                <tr><td><code>DATE</code></td><td>Solo fecha, en formato año-mes-día</td><td>'2026-03-15'</td></tr>
+                <tr><td><code>DATETIME</code></td><td>Fecha y hora</td><td>'2026-03-15 14:30:00'</td></tr>
+                <tr><td><code>BOOLEAN</code></td><td>Verdadero o falso. En MySQL por dentro es un entero: 1 o 0</td><td>TRUE</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="aviso cuidado revelar">
+            <svg class="ic"><use href="#ic-alerta"></use></svg>
+            <div class="cuerpo-aviso">
+              <span class="titulo-aviso">Un teléfono no es un número</span>
+              Un teléfono, una cédula o un código de barras se guardan en <code>VARCHAR</code>, no en
+              <code>INT</code>. Nunca vas a sumar dos teléfonos, y en cambio sí necesitas conservar
+              el cero de la izquierda y admitir signos como el <code>+</code>. La regla: es número
+              solo si tiene sentido hacer cuentas con él.
+            </div>
+          </div>
+
+          <h3 class="sub revelar"><svg class="ic"><use href="#ic-tabla"></use></svg> Crear las tablas</h3>
+
+          <figure class="bloque revelar">
+            <div class="barra">
+              <span class="sello">DDL</span>
+              <span class="nota">La tabla sin dependencias va primero</span>
+            </div>
+            <pre><code>CREATE TABLE autor (
+  id_autor    INT AUTO_INCREMENT,
+  nombre      VARCHAR(80)  NOT NULL,
+  pais        VARCHAR(40),
+  PRIMARY KEY (id_autor)
+);</code></pre>
+          </figure>
+
+          <div class="revelar">
+            <p>Línea por línea:</p>
+            <ul class="puntos">
+              <li><code>id_autor INT AUTO_INCREMENT</code> &mdash; el identificador. <code>AUTO_INCREMENT</code> hace que lo genere el motor: 1, 2, 3... Tú nunca lo escribes.</li>
+              <li><code>NOT NULL</code> &mdash; esa columna es obligatoria; una fila sin nombre de autor no entra.</li>
+              <li><code>pais VARCHAR(40)</code> &mdash; sin <code>NOT NULL</code>, así que admite quedar vacía.</li>
+              <li><code>PRIMARY KEY (id_autor)</code> &mdash; declara cuál columna identifica la fila.</li>
+            </ul>
+          </div>
+
+          <div class="revelar">
+            <p>
+              Ahora la tabla que depende de la anterior. La <strong>llave foránea</strong> es la línea
+              que las conecta:
+            </p>
+          </div>
+
+          <figure class="bloque revelar">
+            <div class="barra">
+              <span class="sello">DDL</span>
+              <span class="nota">El orden importa: autor tiene que existir antes</span>
+            </div>
+            <pre><code>CREATE TABLE libro (
+  id_libro    INT AUTO_INCREMENT,
+  titulo      VARCHAR(150) NOT NULL,
+  anio        INT,
+  id_autor    INT NOT NULL,
+  PRIMARY KEY (id_libro),
+  CONSTRAINT fk_libro_autor
+    FOREIGN KEY (id_autor) REFERENCES autor(id_autor)
+);
+
+CREATE TABLE socio (
+  id_socio        INT AUTO_INCREMENT PRIMARY KEY,
+  nombre          VARCHAR(80) NOT NULL,
+  correo          VARCHAR(100) UNIQUE,
+  fecha_registro  DATE NOT NULL
+);
+
+CREATE TABLE prestamo (
+  id_prestamo       INT AUTO_INCREMENT PRIMARY KEY,
+  fecha_prestamo    DATE NOT NULL,
+  fecha_devolucion  DATE,
+  id_libro          INT NOT NULL,
+  id_socio          INT NOT NULL,
+  FOREIGN KEY (id_libro) REFERENCES libro(id_libro),
+  FOREIGN KEY (id_socio) REFERENCES socio(id_socio)
+);</code></pre>
+          </figure>
+
+          <div class="aviso truco revelar">
+            <svg class="ic"><use href="#ic-bombilla"></use></svg>
+            <div class="cuerpo-aviso">
+              <span class="titulo-aviso">Dos formas de escribir lo mismo</span>
+              La llave primaria se puede declarar al lado de la columna
+              (<code>id_socio INT AUTO_INCREMENT PRIMARY KEY</code>) o al final, en línea aparte
+              (<code>PRIMARY KEY (id_socio)</code>). Las dos son válidas; la segunda es la única
+              posible cuando la llave está formada por <em>dos</em> columnas. Elige una y sé
+              consistente en todo el script.
+            </div>
+          </div>
+
+          <h3 class="sub revelar"><svg class="ic"><use href="#ic-lapiz"></use></svg> Modificar y eliminar</h3>
+
+          <figure class="bloque revelar">
+            <div class="barra">
+              <span class="sello">DDL</span>
+              <span class="nota">ALTER TABLE: cambiar una tabla que ya existe</span>
+            </div>
+            <pre><code>ALTER TABLE libro ADD COLUMN editorial VARCHAR(60);
+ALTER TABLE libro MODIFY COLUMN titulo VARCHAR(200) NOT NULL;
+ALTER TABLE libro CHANGE COLUMN anio anio_publicacion INT;
+ALTER TABLE libro DROP COLUMN editorial;</code></pre>
+          </figure>
+
+          <div class="revelar">
+            <p>
+              <code>MODIFY</code> cambia el tipo dejando el nombre; <code>CHANGE</code> cambia el
+              nombre y exige repetir el tipo. Es la confusión clásica del parcial.
+            </p>
+          </div>
+
+          <div class="marco-tabla revelar">
+            <table class="datos">
+              <thead>
+                <tr><th>Instrucción</th><th>Qué borra</th><th>Familia</th><th>¿Se deshace?</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>DELETE FROM libro;</code></td>
+                  <td>Las filas, una por una. Admite <code>WHERE</code></td>
+                  <td>DML</td>
+                  <td>Sí, con <code>ROLLBACK</code></td>
+                </tr>
+                <tr>
+                  <td><code>TRUNCATE TABLE libro;</code></td>
+                  <td>Todas las filas de golpe. La tabla vacía queda ahí</td>
+                  <td>DDL</td>
+                  <td>No</td>
+                </tr>
+                <tr>
+                  <td><code>DROP TABLE libro;</code></td>
+                  <td>La tabla entera: filas, columnas y definición</td>
+                  <td>DDL</td>
+                  <td>No</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="revelar">
+            <p>
+              <code>TRUNCATE</code> además reinicia el contador de <code>AUTO_INCREMENT</code> y
+              <code>DELETE</code> no. Si vacías una tabla con <code>DELETE</code>, el siguiente
+              registro seguirá desde donde iba.
+            </p>
+          </div>
+        </section>
+
+        <!-- ======================================= 4. Restricciones ===== -->
+        <section class="tramo" id="s4">
+          <div class="encabezado-tramo revelar">
+            <span class="marca"><svg class="ic"><use href="#ic-llave"></use></svg></span>
+            <h2>Restricciones</h2>
+            <span class="paso">04</span>
+          </div>
+
+          <div class="revelar">
+            <p>
+              Una restricción es una regla que el motor hace cumplir siempre, sin que nadie tenga
+              que acordarse de ella. Es lo que separa una base de datos de un montón de hojas de
+              cálculo.
+            </p>
+          </div>
+
+          <div class="marco-tabla revelar">
+            <table class="datos">
+              <thead>
+                <tr><th>Restricción</th><th>Qué garantiza</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>PRIMARY KEY</code></td><td>Identifica la fila. Es única y nunca nula. Una sola por tabla</td></tr>
+                <tr><td><code>FOREIGN KEY</code></td><td>El valor tiene que existir en la tabla a la que apunta</td></tr>
+                <tr><td><code>NOT NULL</code></td><td>La columna no puede quedar vacía</td></tr>
+                <tr><td><code>UNIQUE</code></td><td>El valor no se repite. A diferencia de la PK, admite un nulo</td></tr>
+                <tr><td><code>DEFAULT</code></td><td>Valor que se pone solo cuando no se da ninguno</td></tr>
+                <tr><td><code>CHECK</code></td><td>Condición que todo valor debe cumplir</td></tr>
+                <tr><td><code>AUTO_INCREMENT</code></td><td>El motor genera el número. Propio de MySQL, y va sobre la llave</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <figure class="bloque revelar">
+            <div class="barra">
+              <span class="sello">DDL</span>
+              <span class="nota">Todas juntas en una misma tabla</span>
+            </div>
+            <pre><code>CREATE TABLE multa (
+  id_multa     INT AUTO_INCREMENT PRIMARY KEY,
+  valor        DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  pagada       BOOLEAN NOT NULL DEFAULT FALSE,
+  id_prestamo  INT NOT NULL UNIQUE,
+  CHECK (valor &gt;= 0),
+  FOREIGN KEY (id_prestamo) REFERENCES prestamo(id_prestamo)
+);</code></pre>
+          </figure>
+
+          <h3 class="sub revelar"><svg class="ic"><use href="#ic-enlace"></use></svg> La llave foránea en acción</h3>
+
+          <div class="revelar">
+            <p>
+              Esta es la restricción que más cuesta entender y la que más protege. Dice: <em>este
+              valor tiene que existir allá</em>. Y el motor lo hace cumplir en los dos sentidos.
+            </p>
+          </div>
+
+          <figure class="bloque revelar">
+            <div class="barra">
+              <span class="sello">ERROR</span>
+              <span class="nota">Al insertar: el padre tiene que existir primero</span>
+            </div>
+            <pre><code>INSERT INTO libro (titulo, anio, id_autor) VALUES ('Sin autor', 2020, 99);
+-- Cannot add or update a child row: a foreign key constraint fails
+-- No existe ningún autor con id_autor = 99.</code></pre>
+          </figure>
+
+          <figure class="bloque revelar">
+            <div class="barra">
+              <span class="sello">ERROR</span>
+              <span class="nota">Al borrar: no puedes dejar filas huérfanas</span>
+            </div>
+            <pre><code>DELETE FROM autor WHERE id_autor = 1;
+-- Cannot delete or update a parent row: a foreign key constraint fails
+-- Hay libros que apuntan a ese autor. Borra primero los libros.</code></pre>
+          </figure>
+
+          <div class="revelar">
+            <p>
+              Se puede cambiar ese comportamiento al declarar la llave. <code>ON DELETE CASCADE</code>
+              borra en cascada los hijos; <code>ON DELETE SET NULL</code> les deja la columna vacía.
+              Úsalos con cuidado: <code>CASCADE</code> mal puesto borra media base sin preguntar.
+            </p>
+          </div>
+
+          <figure class="bloque revelar">
+            <div class="barra">
+              <span class="sello">DDL</span>
+              <span class="nota">Acciones en cascada</span>
+            </div>
+            <pre><code>FOREIGN KEY (id_autor) REFERENCES autor(id_autor)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE</code></pre>
+          </figure>
+        </section>
+
+        <!-- ================================================= 5. DML ===== -->
+        <section class="tramo" id="s5">
+          <div class="encabezado-tramo revelar">
+            <span class="marca"><svg class="ic"><use href="#ic-lapiz"></use></svg></span>
+            <h2>DML: los datos</h2>
+            <span class="paso">05</span>
+          </div>
+
+          <h3 class="sub revelar"><svg class="ic"><use href="#ic-mas"></use></svg> INSERT</h3>
+
+          <figure class="bloque revelar">
+            <div class="barra">
+              <span class="sello">DML</span>
+              <span class="nota">Varias filas en una sola instrucción</span>
+            </div>
+            <pre><code>INSERT INTO autor (nombre, pais) VALUES
+  ('Gabriel García Márquez', 'Colombia'),
+  ('Mario Vargas Llosa',     'Perú'),
+  ('Isabel Allende',         'Chile');
+
+INSERT INTO libro (titulo, anio, id_autor) VALUES
+  ('Cien años de soledad', 1967, 1),
+  ('El amor en los tiempos del cólera', 1985, 1),
+  ('La ciudad y los perros', 1963, 2),
+  ('La casa de los espíritus', 1982, 3);</code></pre>
+          </figure>
+
+          <div class="revelar">
+            <ul class="puntos">
+              <li>Los <strong>textos y las fechas van entre comillas simples</strong>; los números, no.</li>
+              <li>La columna <code>AUTO_INCREMENT</code> no se nombra: el motor la llena.</li>
+              <li>Meter varias filas en un solo <code>INSERT</code> es mucho más rápido que hacer un <code>INSERT</code> por fila.</li>
+              <li>Si el texto lleva un apóstrofo, se duplica: <code>'O''Hara'</code>.</li>
+            </ul>
+          </div>
+
+          <div class="aviso truco revelar">
+            <svg class="ic"><use href="#ic-bombilla"></use></svg>
+            <div class="cuerpo-aviso">
+              <span class="titulo-aviso">Nombra siempre las columnas</span>
+              <code>INSERT INTO autor VALUES ('Ana', 'Colombia');</code> funciona hoy y se rompe
+              mañana, cuando alguien agregue una columna en la mitad de la tabla. Escribir
+              <code>INSERT INTO autor (nombre, pais) VALUES ...</code> cuesta cinco segundos más y no
+              se rompe nunca.
+            </div>
+          </div>
+
+          <h3 class="sub revelar"><svg class="ic"><use href="#ic-lapiz"></use></svg> UPDATE</h3>
+
+          <figure class="bloque revelar">
+            <div class="barra">
+              <span class="sello">DML</span>
+              <span class="nota">Cambiar filas que ya existen</span>
+            </div>
+            <pre><code>UPDATE libro
+   SET anio = 1968
+ WHERE id_libro = 1;
+
+UPDATE socio
+   SET correo = 'ana@correo.com',
+       nombre = 'Ana María Ruiz'
+ WHERE id_socio = 3;</code></pre>
+          </figure>
+
+          <h3 class="sub revelar"><svg class="ic"><use href="#ic-papelera"></use></svg> DELETE</h3>
+
+          <figure class="bloque revelar">
+            <div class="barra">
+              <span class="sello">DML</span>
+              <span class="nota">Borrar filas</span>
+            </div>
+            <pre><code>DELETE FROM prestamo WHERE id_prestamo = 7;
+DELETE FROM prestamo WHERE fecha_devolucion IS NOT NULL;</code></pre>
+          </figure>
+
+          <div class="aviso cuidado revelar">
+            <svg class="ic"><use href="#ic-alerta"></use></svg>
+            <div class="cuerpo-aviso">
+              <span class="titulo-aviso">El WHERE no es opcional</span>
+              <code>UPDATE socio SET correo = NULL;</code> borra el correo de <em>todos</em> los
+              socios. <code>DELETE FROM socio;</code> vacía la tabla entera. Sin
+              <code>WHERE</code>, la instrucción se aplica a todas las filas y el motor no pregunta.
+              <br><br>
+              <strong>La costumbre que te va a salvar:</strong> escribe primero el
+              <code>SELECT</code> con ese mismo <code>WHERE</code>, mira cuántas filas salen, y solo
+              entonces cámbialo por <code>UPDATE</code> o <code>DELETE</code>.
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================= 6. DQL ===== -->
+        <section class="tramo" id="s6">
+          <div class="encabezado-tramo revelar">
+            <span class="marca"><svg class="ic"><use href="#ic-lupa"></use></svg></span>
+            <h2>DQL: consultar</h2>
+            <span class="paso">06</span>
+          </div>
+
+          <div class="revelar">
+            <p>
+              Una sola instrucción, <code>SELECT</code>, con muchas cláusulas opcionales que siempre
+              van en el mismo orden. Esta es su anatomía completa:
+            </p>
+          </div>
+
+          <figure class="bloque revelar">
+            <div class="barra">
+              <span class="sello">DQL</span>
+              <span class="nota">El esqueleto. Todo menos SELECT y FROM es opcional</span>
+            </div>
+            <pre><code>SELECT   columnas
+FROM     tabla
+JOIN     otra_tabla ON condicion
+WHERE    condicion_de_fila
+GROUP BY columna
+HAVING   condicion_de_grupo
+ORDER BY columna ASC
+LIMIT    cantidad;</code></pre>
+          </figure>
+
+          <h3 class="sub revelar"><svg class="ic"><use href="#ic-lista"></use></svg> Lo esencial</h3>
+
+          <figure class="bloque revelar">
+            <div class="barra">
+              <span class="sello">DQL</span>
+              <span class="nota">Elegir columnas y filtrar</span>
+            </div>
+            <pre><code>SELECT * FROM libro;                       -- todas las columnas
+SELECT titulo, anio FROM libro;            -- solo dos
+SELECT DISTINCT pais FROM autor;           -- sin repetidos
+SELECT titulo AS obra FROM libro;          -- con otro encabezado
+
+SELECT * FROM libro WHERE anio &gt; 1980;
+SELECT * FROM libro ORDER BY anio DESC;
+SELECT * FROM libro ORDER BY anio DESC LIMIT 3;</code></pre>
+          </figure>
+
+          <h3 class="sub revelar"><svg class="ic"><use href="#ic-filtro"></use></svg> Los operadores del WHERE</h3>
+
+          <div class="marco-tabla revelar">
+            <table class="datos">
+              <thead>
+                <tr><th>Operador</th><th>Qué hace</th><th>Ejemplo</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>=</code> <code>&lt;&gt;</code></td><td>Igual, distinto</td><td><code>pais = 'Chile'</code></td></tr>
+                <tr><td><code>&gt;</code> <code>&lt;</code> <code>&gt;=</code> <code>&lt;=</code></td><td>Comparaciones</td><td><code>anio &gt;= 1980</code></td></tr>
+                <tr><td><code>BETWEEN</code></td><td>Rango, con los dos extremos incluidos</td><td><code>anio BETWEEN 1960 AND 1970</code></td></tr>
+                <tr><td><code>IN</code></td><td>Está en una lista</td><td><code>pais IN ('Chile','Perú')</code></td></tr>
+                <tr><td><code>LIKE</code></td><td>Se parece. <code>%</code> es cualquier cosa, <code>_</code> es un carácter</td><td><code>titulo LIKE 'El %'</code></td></tr>
+                <tr><td><code>IS NULL</code></td><td>Está vacío</td><td><code>fecha_devolucion IS NULL</code></td></tr>
+                <tr><td><code>AND</code> <code>OR</code> <code>NOT</code></td><td>Combinan condiciones</td><td><code>anio &gt; 1970 AND pais = 'Perú'</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="aviso cuidado revelar">
+            <svg class="ic"><use href="#ic-alerta"></use></svg>
+            <div class="cuerpo-aviso">
+              <span class="titulo-aviso">NULL no es igual a nada, ni siquiera a NULL</span>
+              <code>WHERE fecha_devolucion = NULL</code> no devuelve nada, nunca, aunque haya filas
+              vacías. <code>NULL</code> significa <em>desconocido</em>, y dos desconocidos no son
+              iguales. Se pregunta con <code>IS NULL</code> y <code>IS NOT NULL</code>, y punto.
+            </div>
+          </div>
+
+          <h3 class="sub revelar"><svg class="ic"><use href="#ic-rayo"></use></svg> Funciones de agregado</h3>
+
+          <div class="revelar">
+            <p>
+              Resumen muchas filas en un solo valor. Devuelven una fila, no una por registro.
+            </p>
+          </div>
+
+          <figure class="bloque revelar">
+            <div class="barra">
+              <span class="sello">DQL</span>
+              <span class="nota">Cinco funciones que cubren casi todo</span>
+            </div>
+            <pre><code>SELECT COUNT(*)   AS total_libros    FROM libro;
+SELECT COUNT(pais) AS con_pais        FROM autor;   -- no cuenta los NULL
+SELECT MIN(anio)  AS mas_antiguo      FROM libro;
+SELECT MAX(anio)  AS mas_reciente     FROM libro;
+SELECT AVG(anio)  AS anio_promedio    FROM libro;
+SELECT SUM(valor) AS total_recaudado  FROM multa;</code></pre>
+          </figure>
+
+          <div class="aviso truco revelar">
+            <svg class="ic"><use href="#ic-bombilla"></use></svg>
+            <div class="cuerpo-aviso">
+              <span class="titulo-aviso">COUNT(*) frente a COUNT(columna)</span>
+              <code>COUNT(*)</code> cuenta filas. <code>COUNT(pais)</code> cuenta valores no nulos de
+              esa columna. Si tres autores no tienen país registrado, los dos números no coinciden, y
+              esa diferencia suele ser exactamente lo que te están preguntando.
+            </div>
+          </div>
+
+          <h3 class="sub revelar"><svg class="ic"><use href="#ic-capas"></use></svg> GROUP BY y HAVING</h3>
+
+          <div class="revelar">
+            <p>
+              <code>GROUP BY</code> parte la tabla en montoncitos y aplica el agregado a cada uno.
+              <code>HAVING</code> filtra esos montoncitos, igual que el <code>WHERE</code> filtra las
+              filas.
+            </p>
+          </div>
+
+          <figure class="bloque revelar">
+            <div class="barra">
+              <span class="sello">DQL</span>
+              <span class="nota">Cuántos libros tiene cada autor</span>
+            </div>
+            <pre><code>SELECT   id_autor, COUNT(*) AS cuantos
+FROM     libro
+GROUP BY id_autor;
+
+SELECT   id_autor, COUNT(*) AS cuantos
+FROM     libro
+GROUP BY id_autor
+HAVING   COUNT(*) &gt; 1;         -- solo los que tienen más de uno</code></pre>
+          </figure>
+
+          <div class="aviso truco revelar">
+            <svg class="ic"><use href="#ic-bombilla"></use></svg>
+            <div class="cuerpo-aviso">
+              <span class="titulo-aviso">WHERE o HAVING</span>
+              <strong>WHERE filtra filas antes de agrupar. HAVING filtra grupos después de agrupar.</strong>
+              Por eso en el <code>WHERE</code> no puede aparecer un <code>COUNT()</code>: cuando el
+              <code>WHERE</code> corre, todavía no existen los grupos.
+            </div>
+          </div>
+
+          <h3 class="sub revelar"><svg class="ic"><use href="#ic-enlace"></use></svg> JOIN: unir tablas</h3>
+
+          <div class="revelar">
+            <p>
+              Normalizar reparte la información en varias tablas. <code>JOIN</code> es la instrucción
+              que la vuelve a juntar para leerla, siguiendo la llave foránea.
+            </p>
+          </div>
+
+          <figure class="bloque revelar">
+            <div class="barra">
+              <span class="sello">DQL</span>
+              <span class="nota">Cada libro con el nombre de su autor</span>
+            </div>
+            <pre><code>SELECT l.titulo, l.anio, a.nombre AS autor
+FROM   libro l
+JOIN   autor a ON l.id_autor = a.id_autor
+ORDER BY a.nombre, l.anio;</code></pre>
+          </figure>
+
+          <div class="revelar">
+            <p>
+              La <code>l</code> y la <code>a</code> son <strong>alias</strong>: apodos cortos para no
+              repetir el nombre completo de la tabla. Con dos tablas ya se agradecen; con cuatro son
+              indispensables.
+            </p>
+          </div>
+
+          <div class="marco-tabla revelar">
+            <table class="datos">
+              <thead>
+                <tr><th>Tipo</th><th>Qué devuelve</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>INNER JOIN</code></td><td>Solo las filas que casan en las dos tablas. Es el <code>JOIN</code> por defecto</td></tr>
+                <tr><td><code>LEFT JOIN</code></td><td>Todas las de la izquierda, casen o no. Las que no, salen con <code>NULL</code></td></tr>
+                <tr><td><code>RIGHT JOIN</code></td><td>Igual, pero conservando la de la derecha</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <figure class="bloque revelar">
+            <div class="barra">
+              <span class="sello">DQL</span>
+              <span class="nota">Tres tablas: quién tiene qué libro prestado</span>
+            </div>
+            <pre><code>SELECT s.nombre    AS socio,
+       l.titulo    AS libro,
+       p.fecha_prestamo
+FROM   prestamo p
+JOIN   socio s ON p.id_socio = s.id_socio
+JOIN   libro l ON p.id_libro = l.id_libro
+WHERE  p.fecha_devolucion IS NULL
+ORDER BY p.fecha_prestamo;</code></pre>
+          </figure>
+
+          <div class="aviso truco revelar">
+            <svg class="ic"><use href="#ic-bombilla"></use></svg>
+            <div class="cuerpo-aviso">
+              <span class="titulo-aviso">El LEFT JOIN sirve para encontrar lo que falta</span>
+              ¿Qué autores no tienen ningún libro cargado? Un <code>INNER JOIN</code> jamás te lo va
+              a decir, porque descarta precisamente esas filas.
+              <br><br>
+              <code>SELECT a.nombre FROM autor a LEFT JOIN libro l ON a.id_autor = l.id_autor WHERE l.id_libro IS NULL;</code>
+            </div>
+          </div>
+        </section>
+
+        <!-- ======================================== 7. Orden real ======= -->
+        <section class="tramo" id="s7">
+          <div class="encabezado-tramo revelar">
+            <span class="marca"><svg class="ic"><use href="#ic-reloj"></use></svg></span>
+            <h2>Orden de ejecución</h2>
+            <span class="paso">07</span>
+          </div>
+
+          <div class="revelar">
+            <p>
+              Este es el concepto que separa a quien copia consultas de quien las entiende.
+              <strong>El orden en que se escribe un <code>SELECT</code> no es el orden en que el
+              motor lo ejecuta.</strong>
+            </p>
+            <p>Se escribe así:</p>
+          </div>
+
+          <div class="secuencia">
+            <div class="escalon revelar" style="--i:0"><span class="orden">SE ESCRIBE 1.º</span><span class="clave">SELECT</span><span class="que">qué columnas quiero ver</span></div>
+            <div class="escalon revelar" style="--i:1"><span class="orden">2.º</span><span class="clave">FROM / JOIN</span><span class="que">de dónde salen</span></div>
+            <div class="escalon revelar" style="--i:2"><span class="orden">3.º</span><span class="clave">WHERE</span><span class="que">qué filas me sirven</span></div>
+            <div class="escalon revelar" style="--i:3"><span class="orden">4.º</span><span class="clave">GROUP BY</span><span class="que">cómo las agrupo</span></div>
+            <div class="escalon revelar" style="--i:4"><span class="orden">5.º</span><span class="clave">HAVING</span><span class="que">qué grupos me sirven</span></div>
+            <div class="escalon revelar" style="--i:5"><span class="orden">6.º</span><span class="clave">ORDER BY</span><span class="que">en qué orden</span></div>
+            <div class="escalon revelar" style="--i:6"><span class="orden">7.º</span><span class="clave">LIMIT</span><span class="que">cuántas filas</span></div>
+          </div>
+
+          <div class="revelar">
+            <p>Pero el motor lo ejecuta en este otro orden:</p>
+          </div>
+
+          <div class="secuencia">
+            <div class="escalon revelar" style="--i:0"><span class="orden">SE EJECUTA 1.º</span><span class="clave">FROM / JOIN</span><span class="que">arma la tabla de trabajo</span></div>
+            <div class="escalon revelar" style="--i:1"><span class="orden">2.º</span><span class="clave">WHERE</span><span class="que">bota filas</span></div>
+            <div class="escalon revelar" style="--i:2"><span class="orden">3.º</span><span class="clave">GROUP BY</span><span class="que">arma los grupos</span></div>
+            <div class="escalon revelar" style="--i:3"><span class="orden">4.º</span><span class="clave">HAVING</span><span class="que">bota grupos</span></div>
+            <div class="escalon revelar" style="--i:4"><span class="orden">5.º</span><span class="clave">SELECT</span><span class="que">recorta las columnas</span></div>
+            <div class="escalon revelar" style="--i:5"><span class="orden">6.º</span><span class="clave">ORDER BY</span><span class="que">ordena el resultado</span></div>
+            <div class="escalon revelar" style="--i:6"><span class="orden">7.º</span><span class="clave">LIMIT</span><span class="que">corta las primeras</span></div>
+          </div>
+
+          <div class="aviso truco revelar">
+            <svg class="ic"><use href="#ic-bombilla"></use></svg>
+            <div class="cuerpo-aviso">
+              <span class="titulo-aviso">Con esto se explican tres cosas de un solo golpe</span>
+              <ul class="puntos" style="margin-bottom:0">
+                <li>Por qué el <code>WHERE</code> no puede usar un <code>COUNT()</code>: corre antes de que existan los grupos.</li>
+                <li>Por qué el <code>WHERE</code> no puede usar el alias que definiste en el <code>SELECT</code>: ese alias todavía no existe.</li>
+                <li>Por qué el <code>ORDER BY</code> <em>sí</em> puede usarlo: corre después del <code>SELECT</code>.</li>
+              </ul>
+            </div>
+          </div>
+
+          <figure class="bloque revelar">
+            <div class="barra">
+              <span class="sello">COMPARA</span>
+              <span class="nota">La primera falla, la segunda funciona</span>
+            </div>
+            <pre><code>-- Error: la columna 'cuantos' no existe todavía cuando corre el WHERE
+SELECT id_autor, COUNT(*) AS cuantos FROM libro
+WHERE cuantos &gt; 1 GROUP BY id_autor;
+
+-- Correcto: el alias sí se puede usar en el ORDER BY
+SELECT id_autor, COUNT(*) AS cuantos FROM libro
+GROUP BY id_autor
+HAVING COUNT(*) &gt; 1
+ORDER BY cuantos DESC;</code></pre>
+          </figure>
+        </section>
+
+        <!-- ========================================= 8. Trucos ========== -->
+        <section class="tramo" id="s8">
+          <div class="encabezado-tramo revelar">
+            <span class="marca"><svg class="ic"><use href="#ic-rayo"></use></svg></span>
+            <h2>Trucos y trampas</h2>
+            <span class="paso">08</span>
+          </div>
+
+          <h3 class="sub revelar"><svg class="ic"><use href="#ic-visto"></use></svg> Costumbres que valen la pena</h3>
+
+          <div class="revelar">
+            <ul class="puntos">
+              <li><strong>Palabras clave en mayúsculas, tus nombres en minúsculas.</strong> Al motor le da igual, pero <code>SELECT titulo FROM libro</code> se lee de un vistazo y <code>select TITULO from LIBRO</code> no.</li>
+              <li><strong>Una cláusula por línea.</strong> Cuando la consulta crezca a seis líneas vas a agradecer poder leerla en vertical.</li>
+              <li><strong><code>snake_case</code> para todo</strong>, sin tildes ni eñes ni espacios: <code>fecha_prestamo</code>, no <code>Fecha Préstamo</code>. Las tildes en los nombres de columna dan problemas de codificación tarde o temprano.</li>
+              <li><strong>Tablas en singular.</strong> <code>libro</code>, no <code>libros</code>: cada fila es un libro. Lo importante es elegir una convención y no mezclarlas.</li>
+              <li><strong>Comenta lo raro.</strong> <code>-- comenta hasta el fin de la línea</code> y <code>/* comenta varias líneas */</code>. Explica el porqué, no el qué.</li>
+              <li><strong>Termina siempre en punto y coma.</strong> Es lo que separa una instrucción de la siguiente.</li>
+            </ul>
+          </div>
+
+          <h3 class="sub revelar"><svg class="ic"><use href="#ic-alerta"></use></svg> Las siete trampas de siempre</h3>
+
+          <div class="marco-tabla revelar">
+            <table class="datos">
+              <thead>
+                <tr><th>Se escribe</th><th>Qué pasa</th><th>Se arregla</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>WHERE x = NULL</code></td>
+                  <td>No devuelve nada, nunca</td>
+                  <td><code>WHERE x IS NULL</code></td>
+                </tr>
+                <tr>
+                  <td><code>WHERE nombre = "Ana"</code></td>
+                  <td>Funciona en MySQL y falla en otros motores</td>
+                  <td>Comillas simples: <code>'Ana'</code></td>
+                </tr>
+                <tr>
+                  <td><code>DELETE FROM socio</code></td>
+                  <td>Borra la tabla entera</td>
+                  <td>Poner <code>WHERE</code>, siempre</td>
+                </tr>
+                <tr>
+                  <td><code>CREATE TABLE</code> sin orden</td>
+                  <td>La FK apunta a una tabla que no existe</td>
+                  <td>Crear primero la tabla padre</td>
+                </tr>
+                <tr>
+                  <td><code>telefono INT</code></td>
+                  <td>Se pierde el cero inicial</td>
+                  <td><code>telefono VARCHAR(20)</code></td>
+                </tr>
+                <tr>
+                  <td><code>fecha = '15/03/2026'</code></td>
+                  <td>El motor no la reconoce</td>
+                  <td>Formato ISO: <code>'2026-03-15'</code></td>
+                </tr>
+                <tr>
+                  <td><code>SELECT *</code> en producción</td>
+                  <td>Trae columnas que no necesitas y se rompe si cambia la tabla</td>
+                  <td>Nombrar las columnas</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="aviso truco revelar">
+            <svg class="ic"><use href="#ic-bombilla"></use></svg>
+            <div class="cuerpo-aviso">
+              <span class="titulo-aviso">Tres instrucciones para salir de dudas</span>
+              Cuando no recuerdes cómo llamaste algo, no adivines:
+              <code>SHOW DATABASES;</code> lista las bases, <code>SHOW TABLES;</code> las tablas de
+              la base actual, y <code>DESCRIBE libro;</code> te muestra las columnas de una tabla con
+              su tipo, si admite nulos y cuál es la llave.
+            </div>
+          </div>
+        </section>
+
+        <!-- ====================================== 9. Ejercicios ========= -->
+        <section class="tramo" id="s9">
+          <div class="encabezado-tramo revelar">
+            <span class="marca"><svg class="ic"><use href="#ic-libro"></use></svg></span>
+            <h2>Ejercicios propuestos</h2>
+            <span class="paso">09</span>
+          </div>
+
+          <div class="revelar">
+            <p>
+              Cambiamos de tema para que no se puedan copiar de los ejemplos. El caso es una
+              <strong>veterinaria</strong>: atiende mascotas, cada mascota tiene un dueño y recibe
+              consultas de un veterinario.
+            </p>
+            <p>
+              Trabaja en orden: el nivel 2 usa las tablas del nivel 1, y el 3 usa los datos del 2.
+              Cada ejercicio tiene una pista que puedes abrir, pero úsala solo después de haberlo
+              intentado.
+            </p>
+          </div>
+
+          <h3 class="sub revelar"><svg class="ic"><use href="#ic-tabla"></use></svg> Nivel 1 &mdash; DDL: armar la estructura</h3>
+
+          <div class="reto revelar">
+            <div class="encabeza"><span class="numero">EJERCICIO 1</span><span class="nivel">Nivel 1</span></div>
+            <p>
+              Crea la base de datos <code>veterinaria</code> y entra en ella. Después crea la tabla
+              <code>dueno</code> con: identificador autogenerado, nombre obligatorio de hasta 80
+              caracteres, un teléfono y una dirección.
+            </p>
+            <details class="pista">
+              <summary><svg class="ic"><use href="#ic-flecha"></use></svg> Ver pista</summary>
+              <div class="contenido">
+                Son dos instrucciones antes de la tabla. Piensa bien el tipo del teléfono: ¿vas a
+                hacer cuentas con él?
+              </div>
+            </details>
+          </div>
+
+          <div class="reto revelar">
+            <div class="encabeza"><span class="numero">EJERCICIO 2</span><span class="nivel">Nivel 1</span></div>
+            <p>
+              Crea la tabla <code>mascota</code> con identificador autogenerado, nombre obligatorio,
+              especie, fecha de nacimiento y peso en kilos con dos decimales. Cada mascota pertenece
+              a un dueño: agrega la llave foránea.
+            </p>
+            <details class="pista">
+              <summary><svg class="ic"><use href="#ic-flecha"></use></svg> Ver pista</summary>
+              <div class="contenido">
+                El peso es <code>DECIMAL(5,2)</code>. La columna que apunta al dueño debe tener el
+                mismo tipo que la llave primaria de <code>dueno</code>.
+              </div>
+            </details>
+          </div>
+
+          <div class="reto revelar">
+            <div class="encabeza"><span class="numero">EJERCICIO 3</span><span class="nivel">Nivel 1</span></div>
+            <p>
+              Crea <code>veterinario</code> (identificador, nombre, especialidad y una tarjeta
+              profesional que no se pueda repetir) y <code>consulta</code>, que registra la fecha, el
+              motivo, el diagnóstico, qué mascota se atendió y qué veterinario la atendió.
+            </p>
+            <details class="pista">
+              <summary><svg class="ic"><use href="#ic-flecha"></use></svg> Ver pista</summary>
+              <div class="contenido">
+                «Que no se pueda repetir» es <code>UNIQUE</code>. La tabla <code>consulta</code> lleva
+                dos llaves foráneas, así que las dos tablas a las que apunta deben existir antes.
+              </div>
+            </details>
+          </div>
+
+          <div class="reto revelar">
+            <div class="encabeza"><span class="numero">EJERCICIO 4</span><span class="nivel">Nivel 1</span></div>
+            <p>
+              Te avisan que faltó registrar si la mascota está esterilizada, y que el motivo de la
+              consulta se quedó corto en 60 caracteres. Arregla las dos tablas <em>sin volver a
+              crearlas</em>.
+            </p>
+            <details class="pista">
+              <summary><svg class="ic"><use href="#ic-flecha"></use></svg> Ver pista</summary>
+              <div class="contenido">
+                <code>ALTER TABLE ... ADD COLUMN ...</code> y <code>ALTER TABLE ... MODIFY COLUMN ...</code>.
+                Para un sí o no, el tipo es <code>BOOLEAN</code>, y conviene darle un
+                <code>DEFAULT</code>.
+              </div>
+            </details>
+          </div>
+
+          <h3 class="sub revelar"><svg class="ic"><use href="#ic-lapiz"></use></svg> Nivel 2 &mdash; DML: llenar y corregir</h3>
+
+          <div class="reto revelar">
+            <div class="encabeza"><span class="numero">EJERCICIO 5</span><span class="nivel">Nivel 2</span></div>
+            <p>
+              Inserta cuatro dueños, seis mascotas (al menos un dueño con dos), tres veterinarios y
+              ocho consultas repartidas entre 2025 y 2026. Todo con el menor número posible de
+              instrucciones <code>INSERT</code>.
+            </p>
+            <details class="pista">
+              <summary><svg class="ic"><use href="#ic-flecha"></use></svg> Ver pista</summary>
+              <div class="contenido">
+                Son cuatro <code>INSERT</code>, uno por tabla, cada uno con varios grupos de
+                <code>VALUES</code> separados por comas. Y en orden: primero los dueños, porque las
+                mascotas apuntan a ellos.
+              </div>
+            </details>
+          </div>
+
+          <div class="reto revelar">
+            <div class="encabeza"><span class="numero">EJERCICIO 6</span><span class="nivel">Nivel 2</span></div>
+            <p>
+              Una mascota subió de peso: actualiza el suyo a 12.40&nbsp;kg. Otra cambió de dueño:
+              pásala al dueño número 2. Hazlo en dos instrucciones y asegúrate de que cada una toque
+              exactamente una fila.
+            </p>
+            <details class="pista">
+              <summary><svg class="ic"><use href="#ic-flecha"></use></svg> Ver pista</summary>
+              <div class="contenido">
+                Filtra por la llave primaria, que es lo único que garantiza una sola fila. Antes de
+                ejecutar el <code>UPDATE</code>, corre el mismo <code>WHERE</code> con un
+                <code>SELECT</code>.
+              </div>
+            </details>
+          </div>
+
+          <div class="reto revelar">
+            <div class="encabeza"><span class="numero">EJERCICIO 7</span><span class="nivel">Nivel 2</span></div>
+            <p>
+              Intenta borrar un dueño que tenga mascotas registradas. Copia el mensaje de error que
+              te devuelve el motor y explica con tus palabras qué te está diciendo. Después haz lo
+              necesario para poder borrarlo de verdad.
+            </p>
+            <details class="pista">
+              <summary><svg class="ic"><use href="#ic-flecha"></use></svg> Ver pista</summary>
+              <div class="contenido">
+                No es un error tuyo: es la llave foránea haciendo su trabajo. Para borrarlo hay que
+                ocuparse primero de las filas que lo referencian &mdash; y si esas mascotas tienen
+                consultas, de las consultas antes que nada.
+              </div>
+            </details>
+          </div>
+
+          <div class="reto revelar">
+            <div class="encabeza"><span class="numero">EJERCICIO 8</span><span class="nivel">Nivel 2</span></div>
+            <p>
+              Borra todas las consultas anteriores al 1.º de enero de 2026. Antes de ejecutarlo,
+              escribe la consulta que te dice cuántas filas se van a ir.
+            </p>
+            <details class="pista">
+              <summary><svg class="ic"><use href="#ic-flecha"></use></svg> Ver pista</summary>
+              <div class="contenido">
+                Primero <code>SELECT COUNT(*) FROM consulta WHERE ...</code> y después el
+                <code>DELETE</code> con ese mismo <code>WHERE</code>. Las fechas van entre comillas y
+                en formato <code>'AAAA-MM-DD'</code>.
+              </div>
+            </details>
+          </div>
+
+          <h3 class="sub revelar"><svg class="ic"><use href="#ic-lupa"></use></svg> Nivel 3 &mdash; DQL: preguntarle a la base</h3>
+
+          <div class="reto revelar">
+            <div class="encabeza"><span class="numero">EJERCICIO 9</span><span class="nivel">Nivel 3</span></div>
+            <p>Resuelve cada una con una sola consulta:</p>
+            <ol>
+              <li>Todas las mascotas ordenadas de la más pesada a la más liviana.</li>
+              <li>Las mascotas cuyo nombre empiece por la letra M.</li>
+              <li>Las mascotas que pesen entre 5 y 15 kilos.</li>
+              <li>Las mascotas a las que no se les registró la fecha de nacimiento.</li>
+              <li>Las tres consultas más recientes.</li>
+            </ol>
+            <details class="pista">
+              <summary><svg class="ic"><use href="#ic-flecha"></use></svg> Ver pista</summary>
+              <div class="contenido">
+                En orden: <code>ORDER BY ... DESC</code>, <code>LIKE 'M%'</code>,
+                <code>BETWEEN 5 AND 15</code>, <code>IS NULL</code>, y
+                <code>ORDER BY ... DESC LIMIT 3</code>.
+              </div>
+            </details>
+          </div>
+
+          <div class="reto revelar">
+            <div class="encabeza"><span class="numero">EJERCICIO 10</span><span class="nivel">Nivel 3</span></div>
+            <p>
+              Cuántas mascotas hay en total, cuál es el peso promedio por especie, y qué especies
+              tienen más de una mascota registrada.
+            </p>
+            <details class="pista">
+              <summary><svg class="ic"><use href="#ic-flecha"></use></svg> Ver pista</summary>
+              <div class="contenido">
+                Tres consultas. La segunda es <code>GROUP BY especie</code> con <code>AVG(peso)</code>;
+                la tercera agrega <code>HAVING COUNT(*) &gt; 1</code>. Recuerda que la condición sobre
+                el conteo no puede ir en el <code>WHERE</code>.
+              </div>
+            </details>
+          </div>
+
+          <div class="reto revelar">
+            <div class="encabeza"><span class="numero">EJERCICIO 11</span><span class="nivel">Nivel 3</span></div>
+            <p>
+              Un listado con el nombre de la mascota, el nombre de su dueño, la fecha de la consulta
+              y el nombre del veterinario que la atendió, ordenado por fecha.
+            </p>
+            <details class="pista">
+              <summary><svg class="ic"><use href="#ic-flecha"></use></svg> Ver pista</summary>
+              <div class="contenido">
+                Son tres <code>JOIN</code> encadenados partiendo de <code>consulta</code>. Usa alias
+                de una letra y, como hay dos columnas llamadas <code>nombre</code> en tablas
+                distintas, ponles alias también a ellas con <code>AS</code>.
+              </div>
+            </details>
+          </div>
+
+          <div class="reto revelar">
+            <div class="encabeza"><span class="numero">EJERCICIO 12</span><span class="nivel">Nivel 3</span></div>
+            <p>
+              Qué mascotas <strong>nunca</strong> han tenido una consulta. Piensa bien qué tipo de
+              <code>JOIN</code> necesitas: el normal no sirve.
+            </p>
+            <details class="pista">
+              <summary><svg class="ic"><use href="#ic-flecha"></use></svg> Ver pista</summary>
+              <div class="contenido">
+                <code>LEFT JOIN</code> desde <code>mascota</code> hacia <code>consulta</code>, y luego
+                te quedas con las filas donde el lado de la derecha quedó vacío:
+                <code>WHERE c.id_consulta IS NULL</code>.
+              </div>
+            </details>
+          </div>
+
+          <div class="aviso truco revelar">
+            <svg class="ic"><use href="#ic-visto"></use></svg>
+            <div class="cuerpo-aviso">
+              <span class="titulo-aviso">Cómo entregarlo</span>
+              Un solo archivo <code>.sql</code>, con los ejercicios en orden y un comentario antes de
+              cada uno indicando el número. Que se pueda ejecutar de arriba abajo en una base vacía y
+              funcione completo: eso también se califica.
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <footer class="cierre">
+    <div class="pagina">
+      <p class="nombre">Cuaderno de SQL</p>
+      <p>Material de clase &middot; Bases de Datos &middot; Mg. Juan José Gallego Mesa</p>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------------------------------------------------------- Coloreado
+     Se hace sobre el texto ya escrito en el HTML, para que el código del
+     documento se pueda leer y copiar tal cual. */
+
+  var CLAVES = ("SELECT|FROM|WHERE|INSERT|INTO|VALUES|UPDATE|SET|DELETE|CREATE|DROP|ALTER|TRUNCATE|" +
+    "TABLE|DATABASE|SCHEMA|USE|SHOW|DATABASES|TABLES|DESCRIBE|DESC|ASC|ORDER|GROUP|BY|HAVING|LIMIT|" +
+    "PRIMARY|FOREIGN|KEY|REFERENCES|CONSTRAINT|UNIQUE|CHECK|DEFAULT|AUTO_INCREMENT|NOT|NULL|AND|OR|" +
+    "IS|LIKE|BETWEEN|IN|AS|JOIN|INNER|LEFT|RIGHT|ON|DISTINCT|EXISTS|IF|ADD|COLUMN|MODIFY|CHANGE|" +
+    "CASCADE|RESTRICT|GRANT|REVOKE|COMMIT|ROLLBACK|START|TRANSACTION|TRUE|FALSE").split("|");
+
+  var TIPOS = ("INT|INTEGER|SMALLINT|BIGINT|TINYINT|DECIMAL|NUMERIC|FLOAT|DOUBLE|VARCHAR|CHAR|TEXT|" +
+    "LONGTEXT|DATE|DATETIME|TIMESTAMP|TIME|BOOLEAN|BOOL").split("|");
+
+  var FUNCIONES = ["COUNT", "SUM", "AVG", "MIN", "MAX"];
+
+  var setClaves = {}, setTipos = {}, setFunciones = {};
+  CLAVES.forEach(function (p) { setClaves[p] = 1; });
+  TIPOS.forEach(function (p) { setTipos[p] = 1; });
+  FUNCIONES.forEach(function (p) { setFunciones[p] = 1; });
+
+  function escapar(t) {
+    return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  var PATRON = /(--[^\n]*|\/\*[\s\S]*?\*\/)|('(?:[^']|'')*')|(\b\d+(?:\.\d+)?\b)|([A-Za-z_][A-Za-z0-9_]*)|([(),;.*=<>+\-\/%]+)/g;
+
+  function colorear(texto) {
+    var salida = "", ultimo = 0, m;
+    PATRON.lastIndex = 0;
+    while ((m = PATRON.exec(texto)) !== null) {
+      if (m.index > ultimo) salida += escapar(texto.slice(ultimo, m.index));
+      if (m[1]) salida += '<span class="c">' + escapar(m[1]) + "</span>";
+      else if (m[2]) salida += '<span class="s">' + escapar(m[2]) + "</span>";
+      else if (m[3]) salida += '<span class="n">' + m[3] + "</span>";
+      else if (m[4]) {
+        var may = m[4].toUpperCase();
+        var clase = setClaves[may] ? "k" : setTipos[may] ? "t" : setFunciones[may] ? "f" : "";
+        salida += clase ? '<span class="' + clase + '">' + escapar(m[4]) + "</span>" : escapar(m[4]);
+      } else if (m[5]) salida += '<span class="p">' + escapar(m[5]) + "</span>";
+      ultimo = PATRON.lastIndex;
+    }
+    if (ultimo < texto.length) salida += escapar(texto.slice(ultimo));
+    return salida;
+  }
+
+  var codigos = document.querySelectorAll(".bloque pre code");
+  for (var i = 0; i < codigos.length; i++) {
+    codigos[i].setAttribute("data-plano", codigos[i].textContent);
+    codigos[i].innerHTML = colorear(codigos[i].textContent);
+  }
+
+  /* ------------------------------------------------------------- Copiar */
+
+  var ICONO_COPIAR = '<svg class="ic"><use href="#ic-copiar"></use></svg>';
+  var ICONO_LISTO = '<svg class="ic"><use href="#ic-visto"></use></svg>';
+
+  var barras = document.querySelectorAll(".bloque .barra");
+  for (var b = 0; b < barras.length; b++) {
+    (function (barra) {
+      var boton = document.createElement("button");
+      boton.type = "button";
+      boton.className = "copiar";
+      boton.innerHTML = ICONO_COPIAR + "<span>Copiar</span>";
+      boton.setAttribute("aria-label", "Copiar el código");
+      barra.appendChild(boton);
+
+      boton.addEventListener("click", function () {
+        var bloque = barra.parentNode;
+        var codigo = bloque.querySelector("code");
+        var texto = codigo.getAttribute("data-plano") || codigo.textContent;
+        var listo = function () {
+          boton.innerHTML = ICONO_LISTO + "<span>Copiado</span>";
+          setTimeout(function () {
+            boton.innerHTML = ICONO_COPIAR + "<span>Copiar</span>";
+          }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(texto).then(listo, function () {});
+        } else {
+          var area = document.createElement("textarea");
+          area.value = texto;
+          document.body.appendChild(area);
+          area.select();
+          try { document.execCommand("copy"); } catch (e) {}
+          document.body.removeChild(area);
+          listo();
+        }
+      });
+    })(barras[b]);
+  }
+
+  /* -------------------------------------------------- Revelar al bajar */
+
+  var revelables = document.querySelectorAll(".revelar");
+
+  function revelarTodo() {
+    for (var r = 0; r < revelables.length; r++) revelables[r].classList.add("visible");
+  }
+
+  if (reducido || !("IntersectionObserver" in window)) {
+    revelarTodo();
+  } else {
+    var mirador = new IntersectionObserver(function (entradas) {
+      entradas.forEach(function (e) {
+        if (e.isIntersecting) {
+          e.target.classList.add("visible");
+          mirador.unobserve(e.target);
+        }
+      });
+    }, { rootMargin: "0px 0px -8% 0px", threshold: 0.08 });
+    for (var v = 0; v < revelables.length; v++) mirador.observe(revelables[v]);
+
+    // Red de seguridad: si el observador no llegó a revelar nada (pestaña en
+    // segundo plano, navegador raro), se muestra todo. Nunca texto invisible.
+    setTimeout(function () {
+      if (!document.querySelector(".revelar.visible")) revelarTodo();
+    }, 2000);
+  }
+
+  window.addEventListener("beforeprint", revelarTodo);
+
+  /* ------------------------------------------- Índice y barra de avance */
+
+  var barraAvance = document.getElementById("progreso");
+  var enlaces = document.querySelectorAll(".indice a");
+  var tramos = document.querySelectorAll("section.tramo");
+
+  function alDesplazar() {
+    var alto = document.documentElement.scrollHeight - window.innerHeight;
+    var avance = alto > 0 ? (window.scrollY / alto) * 100 : 0;
+    barraAvance.style.width = avance + "%";
+
+    var actual = "";
+    for (var t = 0; t < tramos.length; t++) {
+      if (tramos[t].getBoundingClientRect().top <= 140) actual = tramos[t].id;
+    }
+    for (var e = 0; e < enlaces.length; e++) {
+      var suyo = enlaces[e].getAttribute("href") === "#" + actual;
+      enlaces[e].classList.toggle("activo", suyo);
+    }
+  }
+
+  window.addEventListener("scroll", alDesplazar, { passive: true });
+  window.addEventListener("resize", alDesplazar);
+  alDesplazar();
+
+  /* ------------------------------------------------ Terminal de portada */
+
+  var pantalla = document.getElementById("terminal");
+  if (pantalla) {
+    var GUION = [
+      { texto: "USE biblioteca;", salida: "Database changed" },
+      { texto: "SELECT titulo FROM libro WHERE anio < 1970;", salida: "2 rows in set (0.00 sec)" }
+    ];
+
+    function pintarPantalla(indice, parcial, conCursor) {
+      var html = "";
+      for (var g = 0; g < GUION.length; g++) {
+        if (g < indice) {
+          html += '<div><span class="prompt">mysql&gt;</span>' + escapar(GUION[g].texto) + "</div>";
+          html += '<div class="salida">' + escapar(GUION[g].salida) + "</div>";
+        } else if (g === indice) {
+          html += '<div><span class="prompt">mysql&gt;</span>' + escapar(parcial) +
+                  (conCursor ? '<span class="cursor"></span>' : "") + "</div>";
+        }
+      }
+      pantalla.innerHTML = html;
+    }
+
+    if (reducido) {
+      pintarPantalla(GUION.length, "", false);
+    } else {
+      var linea = 0, letra = 0;
+      pintarPantalla(0, "", true);
+      var tecleo = setInterval(function () {
+        if (linea >= GUION.length) {
+          clearInterval(tecleo);
+          pintarPantalla(GUION.length, "", false);
+          return;
+        }
+        letra += 1;
+        var completa = letra >= GUION[linea].texto.length;
+        pintarPantalla(linea, GUION[linea].texto.slice(0, letra), true);
+        if (completa) {
+          linea += 1;
+          letra = 0;
+        }
+      }, 52);
+    }
+  }
+})();
+</script>
+</body>
+</html>
