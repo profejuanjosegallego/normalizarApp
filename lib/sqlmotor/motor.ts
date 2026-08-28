@@ -734,6 +734,244 @@ function borrarTabla(s: Sentencia & { c: "borrarTabla" }, ctx: Contexto): Result
   };
 }
 
+function alterar(s: Sentencia & { c: "alterar" }, ctx: Contexto): Resultado {
+  const base = baseActiva(ctx.estado.servidor, ctx.linea);
+  const tabla = exigirTabla(base, s.tabla, ctx.linea);
+  const hechos: string[] = [];
+
+  for (const alt of s.alteraciones) {
+    if (alt.a === "addColumna") {
+      const def = alt.def;
+      if (buscarColumna(tabla, def.nombre)) {
+        throw new ErrorSQL(
+          "La tabla «" + tabla.nombre + "» ya tiene una columna «" + def.nombre + "».",
+          def.linea,
+          "Elige otro nombre. (Cambiar una columna existente con MODIFY todavía no entra en la práctica.)",
+        );
+      }
+      const nueva: ColumnaBD = {
+        nombre: def.nombre,
+        tipo: def.tipo,
+        familia: familiaDe(def.tipo),
+        longitud: def.longitud,
+        noNula: def.noNula,
+        autoIncrement: def.autoIncrement,
+        unica: def.unica,
+        porDefecto: def.porDefecto,
+        fk: null,
+      };
+
+      if (nueva.autoIncrement) {
+        if (nueva.familia !== "entero") {
+          throw new ErrorSQL(
+            "AUTO_INCREMENT solo va en columnas enteras, y «" + nueva.nombre + "» es " + nueva.tipo + ".",
+            def.linea,
+          );
+        }
+        if (!nueva.unica) {
+          throw new ErrorSQL(
+            "Una columna AUTO_INCREMENT añadida con ALTER tiene que ser UNIQUE.",
+            def.linea,
+            "Ejemplo:  ALTER TABLE " + tabla.nombre + " ADD folio INT AUTO_INCREMENT UNIQUE;",
+          );
+        }
+      }
+
+      // Si la tabla ya tiene filas, hay que poder rellenar la columna nueva.
+      if (tabla.filas.length > 0 && !nueva.autoIncrement) {
+        if (nueva.noNula && nueva.porDefecto === undefined) {
+          throw new ErrorSQL(
+            "No puedo añadir «" + nueva.nombre + "» como NOT NULL: «" + tabla.nombre + "» ya tiene " +
+              tabla.filas.length + " fila(s) y no diste un valor por defecto.",
+            def.linea,
+            "Dale un DEFAULT (por ejemplo … DEFAULT 0), o quítale el NOT NULL y luego llénala con UPDATE.",
+          );
+        }
+        if (nueva.unica && nueva.porDefecto !== undefined && tabla.filas.length > 1) {
+          throw new ErrorSQL(
+            "No puedo añadir «" + nueva.nombre + "» como UNIQUE con un DEFAULT fijo: se repetiría en las " +
+              tabla.filas.length + " filas.",
+            def.linea,
+          );
+        }
+      }
+
+      for (const fila of tabla.filas) {
+        if (nueva.autoIncrement) {
+          fila[nueva.nombre] = tabla.siguienteAuto;
+          tabla.siguienteAuto += 1;
+        } else {
+          fila[nueva.nombre] = nueva.porDefecto === undefined ? null : nueva.porDefecto;
+        }
+      }
+
+      tabla.columnas.push(nueva);
+      hechos.push("columna «" + nueva.nombre + "»");
+      continue;
+    }
+
+    if (alt.a === "addPK") {
+      if (tabla.pk.length > 0) {
+        throw new ErrorSQL(
+          "«" + tabla.nombre + "» ya tiene llave primaria (" + tabla.pk.join(", ") + ").",
+          alt.linea,
+          "Una tabla tiene una sola llave primaria.",
+        );
+      }
+      const cols = alt.columnas.map((nombre) => {
+        const col = buscarColumna(tabla, nombre);
+        if (!col) {
+          throw new ErrorSQL(
+            "La llave primaria menciona «" + nombre + "», que no existe en «" + tabla.nombre + "».",
+            alt.linea,
+            "Columnas de «" + tabla.nombre + "»: " + tabla.columnas.map((c) => c.nombre).join(", ") + ".",
+          );
+        }
+        return col;
+      });
+
+      const vistas = new Set<string>();
+      for (const fila of tabla.filas) {
+        const partes = cols.map((c) => fila[c.nombre] ?? null);
+        if (partes.some((v) => v === null)) {
+          throw new ErrorSQL(
+            "No puedo poner esa llave primaria: hay filas con " + alt.columnas.join(", ") + " en NULL.",
+            alt.linea,
+            "La llave primaria no admite NULL. Corrige esas filas con UPDATE y reintenta.",
+          );
+        }
+        const clave = partes.map((v) => mostrar(v)).join("");
+        if (vistas.has(clave)) {
+          throw new ErrorSQL(
+            "No puedo poner esa llave primaria: el valor (" + partes.map((v) => mostrar(v)).join(", ") +
+              ") está repetido.",
+            alt.linea,
+            "La llave primaria no admite repetidos.",
+          );
+        }
+        vistas.add(clave);
+      }
+
+      for (const col of cols) col.noNula = true;
+      tabla.pk = cols.map((c) => c.nombre);
+      hechos.push("llave primaria (" + tabla.pk.join(", ") + ")");
+      ctx.anotar("tabla_con_pk");
+      continue;
+    }
+
+    if (alt.a === "addUnica") {
+      for (const nombre of alt.columnas) {
+        const col = buscarColumna(tabla, nombre);
+        if (!col) {
+          throw new ErrorSQL(
+            "UNIQUE menciona «" + nombre + "», que no existe en «" + tabla.nombre + "».",
+            alt.linea,
+          );
+        }
+        const vistas = new Set<string>();
+        for (const fila of tabla.filas) {
+          const v = fila[col.nombre] ?? null;
+          if (v === null) continue;
+          const k = mostrar(v);
+          if (vistas.has(k)) {
+            throw new ErrorSQL(
+              "No puedo hacer UNIQUE «" + col.nombre + "»: el valor " + mostrar(v) + " está repetido.",
+              alt.linea,
+              "Quita los repetidos con UPDATE o DELETE y vuelve a intentarlo.",
+            );
+          }
+          vistas.add(k);
+        }
+        col.unica = true;
+        hechos.push("UNIQUE en «" + col.nombre + "»");
+      }
+      continue;
+    }
+
+    // alt.a === "addFK"
+    const col = buscarColumna(tabla, alt.columna);
+    if (!col) {
+      throw new ErrorSQL(
+        "La llave foránea usa la columna «" + alt.columna + "», que no existe en «" + tabla.nombre + "».",
+        alt.linea,
+        "Añádela primero:  ALTER TABLE " + tabla.nombre + " ADD " + alt.columna + " INT;",
+      );
+    }
+    if (col.fk) {
+      throw new ErrorSQL(
+        "La columna «" + col.nombre + "» ya es llave foránea (apunta a «" + col.fk.tabla + "»).",
+        alt.linea,
+      );
+    }
+    const esMismaTabla = igual(alt.tablaRef, tabla.nombre);
+    const padre = esMismaTabla ? tabla : buscarTabla(base, alt.tablaRef);
+    if (!padre) {
+      throw new ErrorSQL(
+        "No existe la tabla «" + alt.tablaRef + "», así que la llave foránea no puede apuntar ahí.",
+        alt.linea,
+        "Tablas de «" + base.nombre + "»: " + base.tablas.map((t) => t.nombre).join(", ") + ".",
+      );
+    }
+    const colPadre = buscarColumna(padre, alt.columnaRef);
+    if (!colPadre) {
+      throw new ErrorSQL(
+        "«" + alt.tablaRef + "» no tiene ninguna columna llamada «" + alt.columnaRef + "».",
+        alt.linea,
+        "Sus columnas son: " + padre.columnas.map((c) => c.nombre).join(", ") + ".",
+      );
+    }
+    if (!padre.pk.some((p) => igual(p, colPadre.nombre)) && !colPadre.unica) {
+      throw new ErrorSQL(
+        "Una llave foránea tiene que apuntar a la llave primaria (o a una columna UNIQUE) de la otra tabla, y «" +
+          colPadre.nombre + "» no lo es.",
+        alt.linea,
+        padre.pk.length > 0
+          ? "La llave primaria de «" + alt.tablaRef + "» es: " + padre.pk.join(", ") + "."
+          : "«" + alt.tablaRef + "» no tiene llave primaria. Dásela con:  ALTER TABLE " + alt.tablaRef +
+            " ADD PRIMARY KEY (" + colPadre.nombre + ");",
+      );
+    }
+    if (col.familia !== colPadre.familia) {
+      throw new ErrorSQL(
+        "«" + col.nombre + "» es " + col.tipo + " y apunta a «" + colPadre.nombre + "», que es " +
+          colPadre.tipo + ".",
+        alt.linea,
+        "Las dos columnas de una llave foránea llevan el mismo tipo de dato.",
+      );
+    }
+    // Las filas que ya existen tienen que cumplir la nueva llave foránea.
+    for (const fila of tabla.filas) {
+      const v = fila[col.nombre] ?? null;
+      if (v === null) continue;
+      const existe = padre.filas.some((f) => comparar(f[colPadre.nombre] ?? null, v) === 0);
+      if (!existe) {
+        throw new ErrorSQL(
+          "No puedo crear la llave foránea: la fila con " + col.nombre + " = " + mostrar(v) +
+            " no tiene pareja en «" + padre.nombre + "».",
+          alt.linea,
+          "Crea esa fila en «" + padre.nombre + "» (o corrige la de «" + tabla.nombre + "») y reintenta.",
+        );
+      }
+    }
+
+    col.fk = {
+      tabla: padre.nombre,
+      columna: colPadre.nombre,
+      nombre: alt.nombre || "fk_" + tabla.nombre + "_" + padre.nombre,
+    };
+    hechos.push("llave foránea " + col.nombre + " → " + padre.nombre + "(" + colPadre.nombre + ")");
+    ctx.anotar("fk_creada");
+  }
+
+  return {
+    clase: "mensaje",
+    texto:
+      hechos.length === 0
+        ? "«" + tabla.nombre + "» no cambió."
+        : "«" + tabla.nombre + "» modificada: " + hechos.join("; ") + ".",
+  };
+}
+
 function insertar(s: Sentencia & { c: "insertar" }, ctx: Contexto): Resultado {
   const base = baseActiva(ctx.estado.servidor, ctx.linea);
   const tabla = exigirTabla(base, s.tabla, ctx.linea);
@@ -1222,6 +1460,9 @@ function ejecutarUna(ubicada: SentenciaUbicada, estado: Estado): Resultado {
         break;
       case "borrarTabla":
         resultado = borrarTabla(s, ctx);
+        break;
+      case "alterar":
+        resultado = alterar(s, ctx);
         break;
       case "insertar":
         resultado = insertar(s, ctx);
