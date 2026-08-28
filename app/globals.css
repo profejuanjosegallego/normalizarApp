@@ -69,10 +69,10 @@
   --ed-texto: #e7e9f3;
   --ed-texto-suave: #828bab;
   --ed-acento: #8aa2ff;
-  /* Selección en gris neutro y translúcido: se ve el trozo marcado sin tapar
-     los colores del código (las palabras clave son azules; una selección azul
-     las escondería). */
-  --ed-seleccion: rgba(150, 160, 190, 0.33);
+  /* Selección: banda azul-gris bien visible. Como el texto coloreado se pinta
+     ENCIMA (el <pre> va sobre el textarea), el código se sigue leyendo aunque
+     la banda tenga bastante presencia. */
+  --ed-seleccion: rgba(88, 112, 178, 0.55);
   --ed-clave: #8aa2ff;
   --ed-cadena: #7bd88f;
   --ed-numero: #e6b15a;

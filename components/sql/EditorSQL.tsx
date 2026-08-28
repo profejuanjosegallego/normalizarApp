@@ -339,15 +339,13 @@ export default function EditorSQL({
       </div>
 
       <div className="absolute inset-y-0 right-0 left-12">
-        {/* El salto final sobra a proposito: deja sitio al cursor en la ultima linea. */}
-        <pre ref={pintado} aria-hidden className="sql-codigo absolute inset-0 overflow-hidden">
-          {colorear(valor + "\n").map((t, i) => (
-            <span key={i} className={t.clase}>
-              {t.texto}
-            </span>
-          ))}
-        </pre>
-
+        {/*
+          El textarea va DEBAJO y su texto es transparente; encima se pinta el
+          <pre> con los colores. Asi el codigo coloreado queda SIEMPRE por
+          encima del resaltado de seleccion y nunca se tapa. El <pre> lleva
+          pointer-events:none para que el raton (clic, arrastre de seleccion,
+          rueda) siga llegando al textarea que esta detras.
+        */}
         <textarea
           ref={area}
           className="sql-codigo sql-cursor absolute inset-0 h-full w-full overflow-auto"
@@ -367,6 +365,19 @@ export default function EditorSQL({
           aria-label="Editor de SQL"
           placeholder={"-- Escribe aquí tus instrucciones de SQL.\n-- Ctrl + Enter para ejecutar."}
         />
+
+        {/* El salto final sobra a proposito: deja sitio al cursor en la ultima linea. */}
+        <pre
+          ref={pintado}
+          aria-hidden
+          className="sql-codigo pointer-events-none absolute inset-0 overflow-hidden"
+        >
+          {colorear(valor + "\n").map((t, i) => (
+            <span key={i} className={t.clase}>
+              {t.texto}
+            </span>
+          ))}
+        </pre>
 
         {abierto && caja ? (
           <ul
