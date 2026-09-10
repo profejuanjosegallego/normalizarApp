@@ -39,6 +39,7 @@ export default function PracticaSQL() {
   const [ejecuciones, setEjecuciones] = useState<Ejecucion[]>([]);
   const [pestana, setPestana] = useState<Pestana>("base");
   const [confirmarReinicio, setConfirmarReinicio] = useState(false);
+  const [confirmarLimpiar, setConfirmarLimpiar] = useState(false);
   const [eligiendoTrabajo, setEligiendoTrabajo] = useState(false);
   const [guardados, setGuardados] = useState<EntradaIndice[]>([]);
   const [listo, setListo] = useState(false);
@@ -67,11 +68,11 @@ export default function PracticaSQL() {
   const lineaError = primerFallo?.error?.linea ?? null;
 
   /** Ejecuta lo que este seleccionado, o todo el editor si no hay seleccion. */
-  function ejecutar(desdeCero = false) {
+  function ejecutar() {
     const a = area.current;
     const haySeleccion = !!a && a.selectionStart !== a.selectionEnd;
     const seleccion = haySeleccion ? texto.slice(a.selectionStart, a.selectionEnd) : "";
-    const usaSeleccion = !desdeCero && seleccion.trim().length > 0;
+    const usaSeleccion = seleccion.trim().length > 0;
     const script = usaSeleccion ? seleccion : texto;
 
     // Al correr solo un trozo, las lineas del motor empiezan en 1: se corrigen
@@ -96,8 +97,7 @@ export default function PracticaSQL() {
       return;
     }
 
-    const partida = desdeCero ? estadoVacio() : estado;
-    const corrida = ejecutarScript(partida, script);
+    const corrida = ejecutarScript(estado, script);
     setEstado(corrida.estado);
     setEjecuciones(
       desfase === 0
@@ -117,6 +117,13 @@ export default function PracticaSQL() {
     setConfirmarReinicio(false);
     olvidarSQL();
     guardarEditorSQL(texto);
+  }
+
+  function limpiarEditor() {
+    setTexto("");
+    setEjecuciones([]);
+    setConfirmarLimpiar(false);
+    area.current?.focus();
   }
 
   function traerDelTaller(ejercicioId: string) {
@@ -224,11 +231,11 @@ export default function PracticaSQL() {
               <button
                 type="button"
                 className="btn btn-mini"
-                onClick={() => ejecutar(true)}
+                onClick={() => setConfirmarLimpiar(true)}
                 disabled={!texto.trim()}
-                title="Borra la base y vuelve a ejecutar todo el script desde el principio"
+                title="Deja el editor en blanco para escribir de nuevo"
               >
-                Rehacer desde cero
+                Limpiar el editor
               </button>
               <button
                 type="button"
@@ -242,7 +249,7 @@ export default function PracticaSQL() {
             <p className="suave mt-2 text-xs leading-relaxed">
               Si seleccionas un trozo del texto, <strong>Ejecutar</strong> corre solo eso. Cuando
               cambies un <span className="font-mono">CREATE TABLE</span> que ya habías ejecutado,
-              usa <strong>Rehacer desde cero</strong>.
+              usa <strong>Vaciar el servidor</strong> y vuelve a ejecutar el script completo.
             </p>
           </section>
 
@@ -308,6 +315,27 @@ export default function PracticaSQL() {
           escribas sale de este computador. El dialecto imitado es MySQL / MariaDB.
         </p>
       </footer>
+
+      <Dialogo
+        abierto={confirmarLimpiar}
+        titulo="Limpiar el editor"
+        onCerrar={() => setConfirmarLimpiar(false)}
+        pie={
+          <>
+            <button type="button" className="btn" onClick={() => setConfirmarLimpiar(false)}>
+              Cancelar
+            </button>
+            <button type="button" className="btn btn-primario" onClick={limpiarEditor}>
+              Sí, limpiar
+            </button>
+          </>
+        }
+      >
+        <p className="text-sm leading-relaxed">
+          Se borra todo el texto del editor y no se puede deshacer. Las bases de datos que ya
+          creaste siguen ahí; si también quieres borrarlas, usa <strong>Vaciar el servidor</strong>.
+        </p>
+      </Dialogo>
 
       <Dialogo
         abierto={confirmarReinicio}
