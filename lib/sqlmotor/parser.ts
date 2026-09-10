@@ -5,8 +5,8 @@
  * llaves primarias y foraneas, INSERT, SELECT (con INNER JOIN), UPDATE y
  * DELETE.
  *
- * Lo que queda fuera (LEFT/RIGHT JOIN, GROUP BY, subconsultas) no falla con un
- * error seco: se avisa que todavia no entra en el curso.
+ * Lo que queda fuera (LEFT/RIGHT JOIN, subconsultas) no falla con un error
+ * seco: se avisa que todavia no entra en el curso.
  */
 
 import type {
@@ -287,6 +287,11 @@ function parsearPrimario(l: Lector): Expr {
   if (l.aceptar("FALSE")) return { e: "lit", valor: 0 };
 
   if (t.tipo === "palabra") {
+    if (AGREGADOS.has(t.clave) && l.siguiente().clave === "(") {
+      const { fn, arg, distinto } = parsearAgregado(l);
+      return { e: "agregado", fn, arg, distinto };
+    }
+
     // tabla.columna: el prefijo se conserva, que es lo que desambigua un JOIN.
     const nombre = nombreDeColumna(l, "un nombre de columna");
     if (l.ver("(")) {
@@ -679,6 +684,24 @@ function parsearInsertar(l: Lector): Sentencia {
 }
 
 /** Alias opcional después de una columna o de la tabla. */
+/** COUNT(*), SUM(precio), COUNT(DISTINCT ciudad): la funcion y su argumento. */
+function parsearAgregado(l: Lector): { fn: string; arg: string; distinto: boolean } {
+  const fn = l.actual().clave;
+  l.avanzar();
+  l.avanzar(); // el parentesis de apertura
+
+  let arg = "*";
+  let distinto = false;
+  if (l.ver("*")) {
+    l.avanzar();
+  } else {
+    distinto = l.aceptar("DISTINCT");
+    arg = nombreDeColumna(l, "el nombre de la columna dentro de la función");
+  }
+  l.exigir(")", "el paréntesis que cierra " + fn + "()");
+  return { fn, arg, distinto };
+}
+
 /**
  * Nombre de columna, con el prefijo de la tabla si viene: "nombre" o
  * "dueno.nombre". El motor resuelve despues a que tabla pertenece.
@@ -710,18 +733,8 @@ function parsearSeleccionar(l: Lector): Sentencia {
 
     const t = l.actual();
     if (t.tipo === "palabra" && AGREGADOS.has(t.clave) && l.siguiente().clave === "(") {
-      const fn = t.clave;
-      l.avanzar();
-      l.avanzar();
-      let arg = "*";
-      if (l.ver("*")) {
-        l.avanzar();
-      } else {
-        l.aceptar("DISTINCT");
-        arg = nombreDeColumna(l, "el nombre de la columna dentro de la función");
-      }
-      l.exigir(")", "el paréntesis que cierra " + fn + "()");
-      items.push({ s: "agregado", fn, arg, alias: aliasOpcional(l) });
+      const { fn, arg, distinto } = parsearAgregado(l);
+      items.push({ s: "agregado", fn, arg, distinto, alias: aliasOpcional(l) });
       continue;
     }
 
@@ -754,22 +767,32 @@ function parsearSeleccionar(l: Lector): Sentencia {
   let donde: Expr | null = null;
   if (l.aceptar("WHERE")) donde = parsearExpr(l);
 
+  const grupos: string[] = [];
   if (l.aceptarSecuencia("GROUP", "BY")) {
-    throw new ErrorSQL(
-      "GROUP BY todavía no entra en esta práctica.",
-      l.actual().linea,
-      "COUNT(*), SUM() y AVG() sí funcionan sobre toda la tabla o sobre lo que filtre el WHERE.",
-    );
+    do {
+      grupos.push(nombreDeColumna(l, "el nombre de la columna por la que agrupar"));
+    } while (l.aceptar(","));
   }
+
+  let teniendo: Expr | null = null;
+  if (l.aceptar("HAVING")) teniendo = parsearExpr(l);
 
   const orden: Orden[] = [];
   if (l.aceptarSecuencia("ORDER", "BY")) {
     do {
-      const columna = nombreDeColumna(l, "el nombre de la columna por la que ordenar");
+      const t = l.actual();
+      if (t.tipo === "numero") {
+        throw new ErrorSQL(
+          "Ordena por el nombre de la columna, no por su número.",
+          t.linea,
+          "Se escribe: ORDER BY nombre DESC",
+        );
+      }
+      const expr = parsearExpr(l);
       let descendente = false;
       if (l.aceptar("DESC")) descendente = true;
       else l.aceptar("ASC");
-      orden.push({ columna, descendente });
+      orden.push({ expr, descendente });
     } while (l.aceptar(","));
   }
 
@@ -783,7 +806,19 @@ function parsearSeleccionar(l: Lector): Sentencia {
     limite = n.valor as number;
   }
 
-  return { c: "seleccionar", items, distinto, tabla, alias, uniones, donde, orden, limite };
+  return {
+    c: "seleccionar",
+    items,
+    distinto,
+    tabla,
+    alias,
+    uniones,
+    donde,
+    grupos,
+    teniendo,
+    orden,
+    limite,
+  };
 }
 
 /**

@@ -285,6 +285,7 @@ function armarOrigen(base: BaseBD, s: Sentencia & { c: "seleccionar" }, linea: n
 function traducirExpr(expr: Expr, ambito: Ambito, linea: number): Expr {
   switch (expr.e) {
     case "lit":
+    case "agregado":
       return expr;
     case "col":
       return { e: "col", nombre: ambito.resolver(expr.nombre, linea) };
@@ -476,6 +477,17 @@ function evaluar(expr: Expr, fila: FilaBD, tabla: TablaBD, linea: number): Valor
       const col = exigirColumna(tabla, expr.nombre, linea);
       return fila[col.nombre] ?? null;
     }
+
+    /* Un total solo se puede calcular sobre un grupo de filas, y aqui se esta
+       mirando una sola. Llegar hasta aca significa que se escribio en el sitio
+       equivocado, casi siempre en el WHERE. */
+    case "agregado":
+      throw new ErrorSQL(
+        expr.fn + "() no se puede usar aquí: los totales van en el SELECT o en el HAVING.",
+        linea,
+        "El WHERE filtra fila por fila, antes de agrupar. Para filtrar por un total, " +
+          "agrupa con GROUP BY y filtra con HAVING.",
+      );
 
     case "neg": {
       const n = comoNumero(evaluar(expr.sub, fila, tabla, linea));
@@ -1356,47 +1368,273 @@ function insertar(s: Sentencia & { c: "insertar" }, ctx: Contexto): Resultado {
   };
 }
 
+/**
+ * Un grupo del GROUP BY: las filas que comparten los mismos valores en las
+ * columnas por las que se agrupo, mas una de ellas como representante, que es
+ * de donde se leen esas columnas.
+ */
+type Grupo = { representante: FilaBD; filas: FilaBD[] };
+
+/** Reparte las filas en grupos segun los valores de las columnas indicadas. */
+function agrupar(filas: FilaBD[], columnas: string[]): Grupo[] {
+  if (columnas.length === 0) return [{ representante: filas[0] ?? {}, filas }];
+
+  const porClave = new Map<string, Grupo>();
+  for (const fila of filas) {
+    const clave = JSON.stringify(columnas.map((c) => fila[c] ?? null));
+    const grupo = porClave.get(clave);
+    if (grupo) grupo.filas.push(fila);
+    else porClave.set(clave, { representante: fila, filas: [fila] });
+  }
+  return [...porClave.values()];
+}
+
+/**
+ * Sustituye cada COUNT/SUM/AVG/MIN/MAX de la expresion por su valor ya
+ * calculado sobre las filas del grupo. Lo que queda es una expresion normal,
+ * que se evalua contra la fila representante.
+ */
+function resolverAgregados(expr: Expr, ambito: Ambito, filas: FilaBD[], linea: number): Expr {
+  const recorrer = (e: Expr): Expr => {
+    switch (e.e) {
+      case "agregado": {
+        const arg = e.arg === "*" ? "*" : ambito.resolver(e.arg, linea);
+        return {
+          e: "lit",
+          valor: calcularAgregado(e.fn, arg, e.distinto, ambito.tabla, filas, linea),
+        };
+      }
+      case "lit":
+      case "col":
+        return e;
+      case "neg":
+        return { e: "neg", sub: recorrer(e.sub) };
+      case "no":
+        return { e: "no", sub: recorrer(e.sub) };
+      case "esNulo":
+        return { ...e, sub: recorrer(e.sub) };
+      case "entre":
+        return { ...e, sub: recorrer(e.sub), desde: recorrer(e.desde), hasta: recorrer(e.hasta) };
+      case "en":
+        return { ...e, sub: recorrer(e.sub), lista: e.lista.map(recorrer) };
+      case "como":
+        return { ...e, sub: recorrer(e.sub), patron: recorrer(e.patron) };
+      case "bin":
+        return { e: "bin", op: e.op, izq: recorrer(e.izq), der: recorrer(e.der) };
+    }
+  };
+  return recorrer(expr);
+}
+
+/** Recorre una expresion anotando las columnas que menciona y si trae totales. */
+function inspeccionar(expr: Expr): { columnas: string[]; hayAgregado: boolean } {
+  const columnas: string[] = [];
+  let hayAgregado = false;
+
+  const recorrer = (e: Expr): void => {
+    switch (e.e) {
+      case "lit":
+        return;
+      case "col":
+        columnas.push(e.nombre);
+        return;
+      case "agregado":
+        hayAgregado = true;
+        return;
+      case "neg":
+      case "no":
+      case "esNulo":
+        recorrer(e.sub);
+        return;
+      case "entre":
+        recorrer(e.sub);
+        recorrer(e.desde);
+        recorrer(e.hasta);
+        return;
+      case "en":
+        recorrer(e.sub);
+        e.lista.forEach(recorrer);
+        return;
+      case "como":
+        recorrer(e.sub);
+        recorrer(e.patron);
+        return;
+      case "bin":
+        recorrer(e.izq);
+        recorrer(e.der);
+    }
+  };
+
+  recorrer(expr);
+  return { columnas, hayAgregado };
+}
+
 function seleccionar(s: Sentencia & { c: "seleccionar" }, ctx: Contexto): Resultado {
   const base = baseActiva(ctx.estado.servidor, ctx.linea);
   const ambito = armarOrigen(base, s, ctx.linea);
   const tabla = ambito.tabla;
 
+  /* 1. WHERE: filtra fila por fila, antes de agrupar. Si trae un COUNT, el
+     error sale de `evaluar`, que es donde vive el mensaje. */
+  if (s.donde) exigirQueNoUseAlias(s.donde, s.items, ctx.linea);
   const donde = s.donde ? traducirExpr(s.donde, ambito, ctx.linea) : null;
-  let filas = donde
+  const filtradas = donde
     ? ambito.filas.filter((f) => esVerdad(evaluar(donde, f, tabla, ctx.linea) ?? 0))
     : [...ambito.filas];
 
   const agregados = s.items.filter((i) => i.s === "agregado");
-  if (agregados.length > 0 && agregados.length !== s.items.length) {
+  const agrupa = s.grupos.length > 0 || agregados.length > 0;
+  const porColumnas = s.grupos.map((g) => ambito.resolver(g, ctx.linea));
+
+  if (!agrupa && s.teniendo) {
     throw new ErrorSQL(
-      "No puedes mezclar columnas sueltas con COUNT/SUM/AVG en el mismo SELECT.",
+      "El HAVING filtra grupos, y esta consulta no agrupa nada.",
       ctx.linea,
-      "Haz dos consultas: una con las columnas y otra con el total.",
+      "Para filtrar filas se usa WHERE; el HAVING solo tiene sentido con GROUP BY.",
     );
   }
 
-  if (agregados.length > 0) {
-    const columnas: string[] = [];
-    const valores: ValorSQL[] = [];
-    for (const item of agregados) {
-      if (item.s !== "agregado") continue;
-      columnas.push(item.alias ?? item.fn + "(" + item.arg + ")");
-      const arg = item.arg === "*" ? "*" : ambito.resolver(item.arg, ctx.linea);
-      valores.push(calcularAgregado({ ...item, arg }, tabla, filas, ctx.linea));
+  /* 2. Las columnas de la salida. Con GROUP BY, cada columna suelta tiene que
+     estar en el GROUP BY: dentro del grupo hay varios valores y ninguno manda. */
+  const salida: Salida[] = [];
+  type Extractor = { clase: "col"; columna: string } | { clase: "total"; item: ItemSelect };
+  const extractores: Extractor[] = [];
+
+  for (const item of s.items) {
+    if (item.s === "todo") {
+      if (agrupa) {
+        throw new ErrorSQL(
+          "Con GROUP BY hay que nombrar las columnas: el asterisco no sirve.",
+          ctx.linea,
+          "Nombra la columna por la que agrupas y el total: " +
+            "SELECT ciudad, COUNT(*) FROM cliente GROUP BY ciudad;",
+        );
+      }
+      for (const c of ambito.expandir(item.tabla, ctx.linea)) {
+        salida.push(c);
+        extractores.push({ clase: "col", columna: c.columna });
+      }
+      continue;
     }
-    ctx.anotar("select_agregado");
-    return { clase: "rejilla", columnas, filas: [valores], resumen: "1 fila" };
+
+    if (item.s === "col") {
+      const columna = ambito.resolver(item.nombre, ctx.linea);
+
+      if (agrupa && !porColumnas.some((g) => igual(g, columna))) {
+        const corta = partirNombre(columna).columna;
+        throw new ErrorSQL(
+          porColumnas.length === 0
+            ? "«" + corta + "» no puede salir al lado de un total si no agrupas."
+            : "«" + corta + "» no está en el GROUP BY.",
+          ctx.linea,
+          porColumnas.length === 0
+            ? "Un total resume muchas filas en una: di por cuál columna se agrupa. " +
+              "GROUP BY " + corta + ";"
+            : "Dentro de un grupo esa columna tiene varios valores y no se sabe cuál mostrar. " +
+              "Agrégala al GROUP BY o sácala del SELECT.",
+        );
+      }
+
+      // El titulo lleva el prefijo de la tabla solo si el estudiante lo escribio.
+      const escribioPrefijo = partirNombre(item.nombre).calificador !== null;
+      const titulo = escribioPrefijo ? columna : partirNombre(columna).columna;
+      salida.push({ titulo: item.alias ?? titulo, columna });
+      extractores.push({ clase: "col", columna });
+      continue;
+    }
+
+    salida.push({
+      titulo: item.alias ?? item.fn + "(" + (item.distinto ? "DISTINCT " : "") + item.arg + ")",
+      columna: "",
+    });
+    extractores.push({ clase: "total", item });
   }
 
+  /* 3. HAVING: filtra grupos ya armados, asi que puede mirar totales, pero de
+     columnas solo las agrupadas. */
+  const teniendo = s.teniendo ? traducirExpr(s.teniendo, ambito, ctx.linea) : null;
+  if (teniendo) {
+    for (const columna of inspeccionar(teniendo).columnas) {
+      if (!porColumnas.some((g) => igual(g, columna))) {
+        throw new ErrorSQL(
+          "El HAVING mira «" + partirNombre(columna).columna + "», que no está en el GROUP BY.",
+          ctx.linea,
+          "El HAVING filtra por la columna agrupada o por un total (COUNT, SUM, AVG...). " +
+            "Para filtrar por las demás columnas está el WHERE.",
+        );
+      }
+    }
+  }
+
+  type Registro = { valores: ValorSQL[]; grupo: Grupo };
+  const grupos = agrupa
+    ? agrupar(filtradas, porColumnas)
+    : filtradas.map((f) => ({ representante: f, filas: [f] }));
+
+  const registros: Registro[] = [];
+  for (const grupo of grupos) {
+    if (teniendo) {
+      const condicion = resolverAgregados(teniendo, ambito, grupo.filas, ctx.linea);
+      if (!esVerdad(evaluar(condicion, grupo.representante, tabla, ctx.linea) ?? 0)) continue;
+    }
+
+    registros.push({
+      grupo,
+      valores: extractores.map((x) =>
+        x.clase === "col"
+          ? grupo.representante[x.columna] ?? null
+          : totalDelItem(x.item, ambito, grupo.filas, ctx.linea),
+      ),
+    });
+  }
+
+  /* 4. ORDER BY: el nombre de una salida (incluido el alias de un total), una
+     columna del origen o un total escrito ahí mismo. */
   if (s.orden.length > 0) {
-    const criterios = s.orden.map((o) => ({
-      col: ambito.resolver(o.columna, ctx.linea),
-      desc: o.descendente,
-    }));
-    filas = [...filas].sort((a, b) => {
+    const criterios = s.orden.map((o) => {
+      const escrita = o.expr;
+      const indice =
+        escrita.e === "col" ? salida.findIndex((c) => igual(c.titulo, escrita.nombre)) : -1;
+      if (indice >= 0) return { indice, expr: null, desc: o.descendente };
+
+      const expr = traducirExpr(escrita, ambito, ctx.linea);
+      const { columnas, hayAgregado } = inspeccionar(expr);
+
+      if (hayAgregado && !agrupa) {
+        throw new ErrorSQL(
+          "Para ordenar por un total, la consulta tiene que agrupar.",
+          ctx.linea,
+          "Agrega el total al SELECT y agrupa: " +
+            "SELECT ciudad, COUNT(*) FROM cliente GROUP BY ciudad ORDER BY COUNT(*) DESC;",
+        );
+      }
+      if (agrupa) {
+        for (const columna of columnas) {
+          if (!porColumnas.some((g) => igual(g, columna))) {
+            throw new ErrorSQL(
+              "El ORDER BY mira «" +
+                partirNombre(columna).columna +
+                "», que no está en el GROUP BY.",
+              ctx.linea,
+              "Ordena por la columna agrupada, por un total, o por el nombre que le pusiste " +
+                "con AS en el SELECT.",
+            );
+          }
+        }
+      }
+      return { indice: -1, expr, desc: o.descendente };
+    });
+
+    const valorDe = (r: Registro, c: (typeof criterios)[number]): ValorSQL => {
+      if (c.indice >= 0) return r.valores[c.indice] ?? null;
+      const expr = resolverAgregados(c.expr as Expr, ambito, r.grupo.filas, ctx.linea);
+      return evaluar(expr, r.grupo.representante, tabla, ctx.linea);
+    };
+
+    registros.sort((a, b) => {
       for (const c of criterios) {
-        const va = a[c.col] ?? null;
-        const vb = b[c.col] ?? null;
+        const va = valorDe(a, c);
+        const vb = valorDe(b, c);
         if (va === null && vb === null) continue;
         if (va === null) return c.desc ? 1 : -1;
         if (vb === null) return c.desc ? -1 : 1;
@@ -1408,20 +1646,7 @@ function seleccionar(s: Sentencia & { c: "seleccionar" }, ctx: Contexto): Result
     ctx.anotar("select_orden");
   }
 
-  const salida: Salida[] = [];
-  for (const item of s.items) {
-    if (item.s === "todo") {
-      salida.push(...ambito.expandir(item.tabla, ctx.linea));
-    } else if (item.s === "col") {
-      const columna = ambito.resolver(item.nombre, ctx.linea);
-      // El titulo lleva el prefijo de la tabla solo si el estudiante lo escribio.
-      const escribioPrefijo = partirNombre(item.nombre).calificador !== null;
-      const titulo = escribioPrefijo ? columna : partirNombre(columna).columna;
-      salida.push({ titulo: item.alias ?? titulo, columna });
-    }
-  }
-
-  let matriz = filas.map((f) => salida.map((c) => f[c.columna] ?? null));
+  let matriz = registros.map((r) => r.valores);
 
   if (s.distinto) {
     const vistas = new Set<string>();
@@ -1437,6 +1662,9 @@ function seleccionar(s: Sentencia & { c: "seleccionar" }, ctx: Contexto): Result
   if (s.limite !== null) matriz = matriz.slice(0, s.limite);
 
   ctx.anotar("select_hecho");
+  if (agregados.length > 0) ctx.anotar("select_agregado");
+  if (s.grupos.length > 0) ctx.anotar("select_grupo");
+  if (s.teniendo) ctx.anotar("select_teniendo");
   if (s.uniones.length > 0) ctx.anotar("select_join");
   if (s.donde) ctx.anotar("select_where");
   if (s.items.some((i) => i.s === "todo")) ctx.anotar("select_todo");
@@ -1444,52 +1672,110 @@ function seleccionar(s: Sentencia & { c: "seleccionar" }, ctx: Contexto): Result
 
   const resumen =
     total === 0
-      ? "Ninguna fila cumple la condición"
+      ? donde || teniendo
+        ? "Ninguna fila cumple la condición"
+        : "Ninguna fila"
       : total === 1
-        ? "1 fila"
-        : total + " filas" + (s.limite !== null && total > matriz.length ? " (se muestran " + matriz.length + ")" : "");
+        ? s.grupos.length > 0
+          ? "1 grupo"
+          : "1 fila"
+        : total +
+          (s.grupos.length > 0 ? " grupos" : " filas") +
+          (s.limite !== null && total > matriz.length ? " (se muestran " + matriz.length + ")" : "");
 
   return { clase: "rejilla", columnas: salida.map((c) => c.titulo), filas: matriz, resumen };
 }
 
+/**
+ * El WHERE se ejecuta antes que el SELECT, asi que todavia no existen los
+ * nombres puestos con AS. Es un tropiezo tan comun que merece su propio aviso.
+ */
+function exigirQueNoUseAlias(donde: Expr, items: ItemSelect[], linea: number): void {
+  const alias = items
+    .map((i) => (i.s === "todo" ? null : i.alias))
+    .filter((a): a is string => a !== null);
+  if (alias.length === 0) return;
+
+  for (const columna of inspeccionar(donde).columnas) {
+    if (alias.some((a) => igual(a, columna))) {
+      throw new ErrorSQL(
+        "«" + columna + "» es el nombre que le pusiste a una columna con AS, y el WHERE " +
+          "todavía no lo conoce.",
+        linea,
+        "El WHERE se ejecuta antes que el SELECT. Repite la expresión completa, o si es un " +
+          "total, agrupa y fíltralo con HAVING.",
+      );
+    }
+  }
+}
+
+/** El total de un COUNT/SUM/AVG/MIN/MAX de la lista del SELECT. */
+function totalDelItem(
+  item: ItemSelect,
+  ambito: Ambito,
+  filas: FilaBD[],
+  linea: number,
+): ValorSQL {
+  if (item.s !== "agregado") return null;
+  const arg = item.arg === "*" ? "*" : ambito.resolver(item.arg, linea);
+  return calcularAgregado(item.fn, arg, item.distinto, ambito.tabla, filas, linea);
+}
+
+/**
+ * El valor de un COUNT/SUM/AVG/MIN/MAX sobre un conjunto de filas: la tabla
+ * entera, lo que dejo pasar el WHERE, o las filas de un grupo del GROUP BY.
+ */
 function calcularAgregado(
-  item: Extract<ItemSelect, { s: "agregado" }>,
+  fn: string,
+  arg: string,
+  distinto: boolean,
   tabla: TablaBD,
   filas: FilaBD[],
   linea: number,
 ): ValorSQL {
-  if (item.fn === "COUNT" && item.arg === "*") return filas.length;
+  if (fn === "COUNT" && arg === "*") return filas.length;
 
-  if (item.arg === "*") {
+  if (arg === "*") {
     throw new ErrorSQL(
-      item.fn + "(*) no tiene sentido: hay que decirle sobre qué columna.",
+      fn + "(*) no tiene sentido: hay que decirle sobre qué columna.",
       linea,
-      "Por ejemplo: SELECT " + item.fn + "(precio) FROM producto;",
+      "Por ejemplo: SELECT " + fn + "(precio) FROM producto;",
     );
   }
 
-  const col = exigirColumna(tabla, item.arg, linea);
-  const valores = filas.map((f) => f[col.nombre] ?? null).filter((v) => v !== null);
+  const col = exigirColumna(tabla, arg, linea);
+  let valores = filas.map((f) => f[col.nombre] ?? null).filter((v) => v !== null);
 
-  if (item.fn === "COUNT") return valores.length;
+  // COUNT(DISTINCT ciudad): cada valor cuenta una sola vez.
+  if (distinto) {
+    const vistos = new Set<string>();
+    valores = valores.filter((v) => {
+      const clave = typeof v + ":" + String(v);
+      if (vistos.has(clave)) return false;
+      vistos.add(clave);
+      return true;
+    });
+  }
+
+  if (fn === "COUNT") return valores.length;
   if (valores.length === 0) return null;
 
-  if (item.fn === "MIN" || item.fn === "MAX") {
+  if (fn === "MIN" || fn === "MAX") {
     return valores.reduce((mejor, v) => {
       const cmp = comparar(v, mejor) ?? 0;
-      return (item.fn === "MIN" ? cmp < 0 : cmp > 0) ? v : mejor;
+      return (fn === "MIN" ? cmp < 0 : cmp > 0) ? v : mejor;
     });
   }
 
   const numeros = valores.map((v) => comoNumero(v));
   if (numeros.some((n) => n === null)) {
     throw new ErrorSQL(
-      item.fn + "() solo funciona con números, y «" + col.nombre + "» es " + col.tipo + ".",
+      fn + "() solo funciona con números, y «" + col.nombre + "» es " + col.tipo + ".",
       linea,
     );
   }
   const suma = (numeros as number[]).reduce((a, b) => a + b, 0);
-  if (item.fn === "SUM") return suma;
+  if (fn === "SUM") return suma;
   return Math.round((suma / numeros.length) * 10000) / 10000;
 }
 

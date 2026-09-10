@@ -11,7 +11,9 @@ export type Expr =
   | { e: "esNulo"; sub: Expr; negado: boolean }
   | { e: "entre"; sub: Expr; desde: Expr; hasta: Expr; negado: boolean }
   | { e: "en"; sub: Expr; lista: Expr[]; negado: boolean }
-  | { e: "como"; sub: Expr; patron: Expr; negado: boolean };
+  | { e: "como"; sub: Expr; patron: Expr; negado: boolean }
+  /** COUNT(*), SUM(precio)... Solo tiene sentido en el SELECT y en el HAVING. */
+  | { e: "agregado"; fn: string; arg: string; distinto: boolean };
 
 export type DefColumna = {
   nombre: string;
@@ -62,9 +64,10 @@ export type Alteracion =
 export type ItemSelect =
   | { s: "todo"; tabla: string | null }
   | { s: "col"; nombre: string; alias: string | null }
-  | { s: "agregado"; fn: string; arg: string; alias: string | null };
+  | { s: "agregado"; fn: string; arg: string; distinto: boolean; alias: string | null };
 
-export type Orden = { columna: string; descendente: boolean };
+/** Un criterio del ORDER BY: una columna, un total o el alias de una salida. */
+export type Orden = { expr: Expr; descendente: boolean };
 
 /** Una tabla mas que entra al SELECT con INNER JOIN ... ON. */
 export type Union = {
@@ -99,6 +102,8 @@ export type Sentencia =
       alias: string | null;
       uniones: Union[];
       donde: Expr | null;
+      grupos: string[];
+      teniendo: Expr | null;
       orden: Orden[];
       limite: number | null;
     }

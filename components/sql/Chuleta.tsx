@@ -111,6 +111,55 @@ const FICHAS: Ficha[] = [
       "WHERE numero > 5 AND texto = 'algo'",
   },
   {
+    titulo: "Agrupar y contar (GROUP BY)",
+    nota:
+      "Sin GROUP BY, COUNT(*) da un solo número para toda la tabla. Con él, da uno por cada " +
+      "valor distinto de la columna por la que agrupas.",
+    codigo:
+      "SELECT ciudad, COUNT(*) AS cuantos\n" +
+      "FROM   dueno\n" +
+      "GROUP BY ciudad\n" +
+      "ORDER BY cuantos DESC;\n\n" +
+      "-- Un total por grupo: cuánto se facturó por motivo.\n" +
+      "SELECT motivo, COUNT(*) AS veces, SUM(valor) AS total, AVG(valor) AS promedio\n" +
+      "FROM   consulta\n" +
+      "GROUP BY motivo;\n\n" +
+      "-- Contar valores distintos.\n" +
+      "SELECT COUNT(DISTINCT ciudad) FROM dueno;",
+  },
+  {
+    titulo: "Filtrar grupos (HAVING)",
+    nota:
+      "WHERE filtra filas antes de agrupar; HAVING filtra los grupos ya armados. Por eso un " +
+      "COUNT(*) solo puede ir en el HAVING, nunca en el WHERE.",
+    codigo:
+      "-- Las especies de las que hay más de una mascota:\n" +
+      "SELECT especie, COUNT(*) AS cuantas\n" +
+      "FROM   mascota\n" +
+      "GROUP BY especie\n" +
+      "HAVING COUNT(*) > 1;\n\n" +
+      "-- Los dos se pueden usar juntos:\n" +
+      "SELECT d.nombre, COUNT(*) AS mascotas\n" +
+      "FROM   dueno d\n" +
+      "INNER JOIN mascota m ON d.id_dueno = m.id_dueno\n" +
+      "WHERE  d.ciudad = 'Cali'\n" +
+      "GROUP BY d.nombre\n" +
+      "HAVING COUNT(*) >= 2;",
+  },
+  {
+    titulo: "El orden de las partes",
+    nota: "Siempre en este orden. Si se cambia, el motor no entiende la consulta.",
+    codigo:
+      "SELECT     columnas y totales\n" +
+      "FROM       tabla\n" +
+      "INNER JOIN otra ON condición\n" +
+      "WHERE      filtro de filas\n" +
+      "GROUP BY   columnas por las que se agrupa\n" +
+      "HAVING     filtro de grupos\n" +
+      "ORDER BY   columna o total\n" +
+      "LIMIT      cuántas;",
+  },
+  {
     titulo: "Cambiar y borrar",
     nota: "Sin WHERE se aplican a TODAS las filas de la tabla.",
     codigo:
@@ -148,8 +197,9 @@ export default function Chuleta() {
 
       <p className="suave text-[0.7rem] leading-relaxed">
         Cada instrucción termina en punto y coma. Lo que va después de <code>--</code> es un
-        comentario y no se ejecuta. De los JOIN solo corre el <code>INNER JOIN</code>; el{" "}
-        <code>LEFT</code> y el <code>RIGHT</code> todavía no entran en esta práctica.
+        comentario y no se ejecuta. De los JOIN solo corre el <code>INNER JOIN</code>: el{" "}
+        <code>LEFT</code> y el <code>RIGHT</code>, las subconsultas y los procedimientos
+        almacenados todavía no entran en esta práctica.
       </p>
     </div>
   );
