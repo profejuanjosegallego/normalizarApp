@@ -80,6 +80,26 @@ const FICHAS: Ficha[] = [
       "SELECT COUNT(*) FROM nombre_tabla;",
   },
   {
+    titulo: "Unir dos tablas (INNER JOIN)",
+    nota:
+      "Normalizar repartió los datos en varias tablas; el JOIN los vuelve a juntar siguiendo la " +
+      "llave foránea. El ON dice qué columna de una corresponde a cuál de la otra.",
+    codigo:
+      "SELECT dueno.nombre, mascota.nombre\n" +
+      "FROM   dueno\n" +
+      "INNER JOIN mascota ON dueno.id_dueno = mascota.id_dueno;\n\n" +
+      "-- Con alias, que es como se escribe de verdad:\n" +
+      "SELECT d.nombre, m.nombre, m.especie\n" +
+      "FROM   dueno d\n" +
+      "INNER JOIN mascota m ON d.id_dueno = m.id_dueno\n" +
+      "WHERE  d.ciudad = 'Cali';\n\n" +
+      "-- Tres tablas: se encadena un JOIN por cada salto.\n" +
+      "SELECT d.nombre, m.nombre, c.fecha\n" +
+      "FROM   dueno d\n" +
+      "INNER JOIN mascota m  ON d.id_dueno = m.id_dueno\n" +
+      "INNER JOIN consulta c ON m.id_mascota = c.id_mascota;",
+  },
+  {
     titulo: "Condiciones del WHERE",
     nota: "El % del LIKE significa «cualquier cosa».",
     codigo:
@@ -128,7 +148,8 @@ export default function Chuleta() {
 
       <p className="suave text-[0.7rem] leading-relaxed">
         Cada instrucción termina en punto y coma. Lo que va después de <code>--</code> es un
-        comentario y no se ejecuta.
+        comentario y no se ejecuta. De los JOIN solo corre el <code>INNER JOIN</code>; el{" "}
+        <code>LEFT</code> y el <code>RIGHT</code> todavía no entran en esta práctica.
       </p>
     </div>
   );

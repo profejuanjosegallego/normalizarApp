@@ -2,10 +2,11 @@
  * Analisis sintactico del subconjunto de SQL del curso.
  *
  * Cubre: CREATE/DROP DATABASE, USE, SHOW, DESCRIBE, CREATE/DROP TABLE con
- * llaves primarias y foraneas, INSERT, SELECT de una tabla, UPDATE y DELETE.
+ * llaves primarias y foraneas, INSERT, SELECT (con INNER JOIN), UPDATE y
+ * DELETE.
  *
- * Lo que queda fuera (JOIN, GROUP BY, subconsultas) no falla con un error
- * seco: se avisa que todavia no entra en el curso.
+ * Lo que queda fuera (LEFT/RIGHT JOIN, GROUP BY, subconsultas) no falla con un
+ * error seco: se avisa que todavia no entra en el curso.
  */
 
 import type {
@@ -17,6 +18,7 @@ import type {
   RestriccionTabla,
   Sentencia,
   SentenciaUbicada,
+  Union,
 } from "./ast";
 import { tokenizar, type Token } from "./lexer";
 import { ErrorSQL, type FamiliaTipo, type ValorSQL } from "./tipos";
@@ -28,8 +30,8 @@ const RESERVADAS = new Set([
   "DESCRIBE", "DESC", "ASC", "ORDER", "BY", "GROUP", "HAVING", "LIMIT",
   "PRIMARY", "FOREIGN", "KEY", "REFERENCES", "CONSTRAINT", "UNIQUE", "NOT",
   "NULL", "AND", "OR", "IS", "LIKE", "BETWEEN", "IN", "AS", "JOIN", "INNER",
-  "LEFT", "RIGHT", "ON", "DEFAULT", "AUTO_INCREMENT", "DISTINCT", "EXISTS",
-  "IF", "ALTER", "TRUNCATE", "UNION",
+  "LEFT", "RIGHT", "FULL", "CROSS", "NATURAL", "OUTER", "ON", "DEFAULT",
+  "AUTO_INCREMENT", "DISTINCT", "EXISTS", "IF", "ALTER", "TRUNCATE", "UNION",
 ]);
 
 /** Tipos de dato admitidos, con la familia a la que pertenecen. */
@@ -285,12 +287,8 @@ function parsearPrimario(l: Lector): Expr {
   if (l.aceptar("FALSE")) return { e: "lit", valor: 0 };
 
   if (t.tipo === "palabra") {
-    // tabla.columna: el motor trabaja con una sola tabla, se ignora el prefijo.
-    let nombre = l.identificador("un nombre de columna");
-    if (l.ver(".")) {
-      l.avanzar();
-      nombre = l.identificador("el nombre de la columna después del punto");
-    }
+    // tabla.columna: el prefijo se conserva, que es lo que desambigua un JOIN.
+    const nombre = nombreDeColumna(l, "un nombre de columna");
     if (l.ver("(")) {
       throw new ErrorSQL(
         "La función " + nombre.toUpperCase() + "() todavía no está disponible en esta práctica.",
@@ -681,6 +679,17 @@ function parsearInsertar(l: Lector): Sentencia {
 }
 
 /** Alias opcional después de una columna o de la tabla. */
+/**
+ * Nombre de columna, con el prefijo de la tabla si viene: "nombre" o
+ * "dueno.nombre". El motor resuelve despues a que tabla pertenece.
+ */
+function nombreDeColumna(l: Lector, que: string): string {
+  const nombre = l.identificador(que);
+  if (!l.ver(".")) return nombre;
+  l.avanzar();
+  return nombre + "." + l.identificador("el nombre de la columna después del punto");
+}
+
 function aliasOpcional(l: Lector): string | null {
   if (l.aceptar("AS")) return l.identificador("el alias después de AS");
   if (l.verIdentificador()) return l.identificador("el alias");
@@ -695,7 +704,7 @@ function parsearSeleccionar(l: Lector): Sentencia {
   do {
     if (l.ver("*")) {
       l.avanzar();
-      items.push({ s: "todo" });
+      items.push({ s: "todo", tabla: null });
       continue;
     }
 
@@ -709,7 +718,7 @@ function parsearSeleccionar(l: Lector): Sentencia {
         l.avanzar();
       } else {
         l.aceptar("DISTINCT");
-        arg = l.identificador("el nombre de la columna dentro de la función");
+        arg = nombreDeColumna(l, "el nombre de la columna dentro de la función");
       }
       l.exigir(")", "el paréntesis que cierra " + fn + "()");
       items.push({ s: "agregado", fn, arg, alias: aliasOpcional(l) });
@@ -729,25 +738,18 @@ function parsearSeleccionar(l: Lector): Sentencia {
       l.avanzar();
       if (l.ver("*")) {
         l.avanzar();
-        items.push({ s: "todo" });
+        items.push({ s: "todo", tabla: nombre });
         continue;
       }
-      nombre = l.identificador("el nombre de la columna después del punto");
+      nombre = nombre + "." + l.identificador("el nombre de la columna después del punto");
     }
     items.push({ s: "col", nombre, alias: aliasOpcional(l) });
   } while (l.aceptar(","));
 
   l.exigir("FROM", "la palabra FROM", "Se escribe: SELECT nombre FROM cliente;");
   const tabla = l.identificador("el nombre de la tabla");
-  aliasOpcional(l);
-
-  if (l.ver(",") || l.ver("JOIN") || l.ver("INNER") || l.ver("LEFT") || l.ver("RIGHT")) {
-    throw new ErrorSQL(
-      "Consultar dos tablas a la vez (JOIN) todavía no entra en esta práctica.",
-      l.actual().linea,
-      "Por ahora consulta una tabla a la vez: SELECT * FROM pedido;",
-    );
-  }
+  const alias = aliasOpcional(l);
+  const uniones = parsearUniones(l);
 
   let donde: Expr | null = null;
   if (l.aceptar("WHERE")) donde = parsearExpr(l);
@@ -763,7 +765,7 @@ function parsearSeleccionar(l: Lector): Sentencia {
   const orden: Orden[] = [];
   if (l.aceptarSecuencia("ORDER", "BY")) {
     do {
-      const columna = l.identificador("el nombre de la columna por la que ordenar");
+      const columna = nombreDeColumna(l, "el nombre de la columna por la que ordenar");
       let descendente = false;
       if (l.aceptar("DESC")) descendente = true;
       else l.aceptar("ASC");
@@ -781,7 +783,61 @@ function parsearSeleccionar(l: Lector): Sentencia {
     limite = n.valor as number;
   }
 
-  return { c: "seleccionar", items, distinto, tabla, donde, orden, limite };
+  return { c: "seleccionar", items, distinto, tabla, alias, uniones, donde, orden, limite };
+}
+
+/**
+ * La cadena de INNER JOIN ... ON que sigue al FROM.
+ *
+ * Solo el JOIN interno: es el que corresponde a recomponer un modelo
+ * normalizado siguiendo sus llaves foraneas. Las demas variantes avisan que
+ * todavia no entran, en vez de fallar con un error de sintaxis.
+ */
+function parsearUniones(l: Lector): Union[] {
+  const uniones: Union[] = [];
+
+  for (;;) {
+    if (l.ver(",")) {
+      throw new ErrorSQL(
+        "Para unir dos tablas se usa INNER JOIN, no una coma.",
+        l.actual().linea,
+        "Se escribe: FROM dueno d INNER JOIN mascota m ON d.id_dueno = m.id_dueno",
+      );
+    }
+
+    if (l.ver("LEFT") || l.ver("RIGHT") || l.ver("FULL") || l.ver("CROSS") || l.ver("NATURAL")) {
+      const clase = l.actual().texto.toUpperCase();
+      throw new ErrorSQL(
+        "Por ahora solo entra el INNER JOIN; " + clase + " JOIN todavía no.",
+        l.actual().linea,
+        "El INNER JOIN devuelve las filas que casan en las dos tablas.",
+      );
+    }
+
+    const hayInner = l.ver("INNER");
+    if (!hayInner && !l.ver("JOIN")) return uniones;
+
+    const linea = l.actual().linea;
+    l.aceptar("INNER");
+    l.exigir(
+      "JOIN",
+      "la palabra JOIN después de INNER",
+      "Se escribe: INNER JOIN mascota m ON d.id_dueno = m.id_dueno",
+    );
+
+    const tabla = l.identificador("el nombre de la tabla que vas a unir");
+    const alias = aliasOpcional(l);
+
+    l.exigir(
+      "ON",
+      "la palabra ON con la condición de la unión",
+      "Sin ON no se sabe qué fila de una tabla corresponde a cuál de la otra: " +
+        "ON dueno.id_dueno = mascota.id_dueno",
+    );
+    const on = parsearExpr(l);
+
+    uniones.push({ tabla, alias, on, linea });
+  }
 }
 
 function parsearActualizar(l: Lector): Sentencia {
@@ -794,7 +850,7 @@ function parsearActualizar(l: Lector): Sentencia {
 
   const asignaciones: { columna: string; valor: Expr }[] = [];
   do {
-    const columna = l.identificador("el nombre de la columna que vas a cambiar");
+    const columna = nombreDeColumna(l, "el nombre de la columna que vas a cambiar");
     l.exigir("=", "el signo igual", "Se escribe: SET ciudad = 'Cali'");
     asignaciones.push({ columna, valor: parsearExpr(l) });
   } while (l.aceptar(","));

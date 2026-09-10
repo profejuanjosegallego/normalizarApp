@@ -88,6 +88,241 @@ function exigirColumna(tabla: TablaBD, nombre: string, linea: number): ColumnaBD
   return col;
 }
 
+/* --------------------------------------------------------------------------
+ * Ambito de columnas de un SELECT
+ *
+ * Con una sola tabla el nombre de una columna basta. Al unir varias con INNER
+ * JOIN aparece la ambiguedad ("nombre" existe en dueno y en mascota), asi que
+ * dentro de la consulta cada columna pasa a llamarse "alias.columna" y el
+ * ambito traduce lo que escribio el estudiante a ese nombre, o le explica por
+ * que no puede.
+ * ----------------------------------------------------------------------- */
+
+/** Una tabla del FROM con el nombre por el que se la llama en la consulta. */
+type Fuente = { alias: string; tabla: TablaBD };
+
+type Salida = { titulo: string; columna: string };
+
+type Ambito = {
+  /** Tabla contra la que se evaluan las expresiones ya traducidas. */
+  tabla: TablaBD;
+  /** Filas de partida, antes del WHERE. */
+  filas: FilaBD[];
+  /** Traduce el nombre escrito por el estudiante al de `tabla`. */
+  resolver: (nombre: string, linea: number) => string;
+  /** Columnas que despliega `*` (calificador null) o `alias.*`. */
+  expandir: (calificador: string | null, linea: number) => Salida[];
+};
+
+/** Parte "alias.columna" en sus dos mitades; calificador null si no viene. */
+function partirNombre(nombre: string): { calificador: string | null; columna: string } {
+  const punto = nombre.indexOf(".");
+  return punto < 0
+    ? { calificador: null, columna: nombre }
+    : { calificador: nombre.slice(0, punto), columna: nombre.slice(punto + 1) };
+}
+
+function exigirFuente(fuentes: Fuente[], calificador: string, linea: number): Fuente {
+  const f = fuentes.find((x) => igual(x.alias, calificador));
+  if (!f) {
+    throw new ErrorSQL(
+      "«" + calificador + "» no es ninguna de las tablas de esta consulta.",
+      linea,
+      "Esta consulta trabaja sobre: " + fuentes.map((x) => x.alias).join(", ") + ".",
+    );
+  }
+  return f;
+}
+
+/** Ambito de un SELECT sobre una sola tabla: los nombres van sin prefijo. */
+function ambitoSimple(tabla: TablaBD, alias: string | null): Ambito {
+  const fuentes: Fuente[] = [{ alias: alias ?? tabla.nombre, tabla }];
+
+  return {
+    tabla,
+    filas: tabla.filas,
+    resolver(nombre, linea) {
+      const { calificador, columna } = partirNombre(nombre);
+      if (calificador !== null) exigirFuente(fuentes, calificador, linea);
+      return exigirColumna(tabla, columna, linea).nombre;
+    },
+    expandir(calificador, linea) {
+      if (calificador !== null) exigirFuente(fuentes, calificador, linea);
+      return tabla.columnas.map((c) => ({ titulo: c.nombre, columna: c.nombre }));
+    },
+  };
+}
+
+/**
+ * Ambito de un SELECT con INNER JOIN: una tabla de trabajo cuyas columnas se
+ * llaman "alias.columna", que es tambien como salen tituladas en pantalla.
+ */
+function ambitoUnido(fuentes: Fuente[], filas: FilaBD[]): Ambito {
+  const columnas: ColumnaBD[] = [];
+  for (const f of fuentes) {
+    for (const c of f.tabla.columnas) columnas.push({ ...c, nombre: f.alias + "." + c.nombre });
+  }
+
+  const tabla: TablaBD = {
+    nombre: fuentes.map((f) => f.alias).join(" + "),
+    columnas,
+    pk: [],
+    filas,
+    siguienteAuto: 1,
+  };
+
+  return {
+    tabla,
+    filas,
+    resolver(nombre, linea) {
+      const { calificador, columna } = partirNombre(nombre);
+
+      if (calificador !== null) {
+        const f = exigirFuente(fuentes, calificador, linea);
+        return f.alias + "." + exigirColumna(f.tabla, columna, linea).nombre;
+      }
+
+      const duenas = fuentes.filter((f) => buscarColumna(f.tabla, columna));
+      if (duenas.length === 0) {
+        throw new ErrorSQL(
+          "Ninguna de las tablas de esta consulta tiene una columna llamada «" + columna + "».",
+          linea,
+          "Columnas disponibles: " + columnas.map((c) => c.nombre).join(", ") + ".",
+        );
+      }
+      if (duenas.length > 1) {
+        throw new ErrorSQL(
+          "«" + columna + "» está en más de una tabla y no se sabe a cuál te refieres.",
+          linea,
+          "Ponle delante el nombre de la tabla: " +
+            duenas.map((f) => f.alias + "." + columna).join(" o ") +
+            ".",
+        );
+      }
+      const f = duenas[0];
+      return f.alias + "." + (buscarColumna(f.tabla, columna) as ColumnaBD).nombre;
+    },
+    expandir(calificador, linea) {
+      const elegidas = calificador === null ? fuentes : [exigirFuente(fuentes, calificador, linea)];
+      return elegidas.flatMap((f) =>
+        f.tabla.columnas.map((c) => ({
+          titulo: f.alias + "." + c.nombre,
+          columna: f.alias + "." + c.nombre,
+        })),
+      );
+    },
+  };
+}
+
+/** Copia las filas de una tabla poniendole su alias delante a cada columna. */
+function prefijar(fuente: Fuente): FilaBD[] {
+  return fuente.tabla.filas.map((fila) => {
+    const salida: FilaBD = {};
+    for (const c of fuente.tabla.columnas) {
+      salida[fuente.alias + "." + c.nombre] = fila[c.nombre] ?? null;
+    }
+    return salida;
+  });
+}
+
+/** Tope de comparaciones por union, para que el navegador no se congele. */
+const TOPE_COMBINACIONES = 250000;
+
+/**
+ * Arma la tabla de trabajo del FROM: la tabla sola, o el resultado de encadenar
+ * los INNER JOIN. Cada ON se resuelve contra las tablas que ya entraron, que es
+ * lo unico que tiene sentido tener a la mano en ese punto.
+ */
+function armarOrigen(base: BaseBD, s: Sentencia & { c: "seleccionar" }, linea: number): Ambito {
+  const primera = exigirTabla(base, s.tabla, linea);
+  if (s.uniones.length === 0) return ambitoSimple(primera, s.alias);
+
+  const fuentes: Fuente[] = [{ alias: s.alias ?? primera.nombre, tabla: primera }];
+  let filas = prefijar(fuentes[0]);
+
+  for (const union of s.uniones) {
+    const tabla = exigirTabla(base, union.tabla, union.linea);
+    const alias = union.alias ?? tabla.nombre;
+
+    if (fuentes.some((f) => igual(f.alias, alias))) {
+      throw new ErrorSQL(
+        "«" + alias + "» ya está en esta consulta y no se puede repetir.",
+        union.linea,
+        "Si necesitas la misma tabla dos veces, dale un alias distinto: INNER JOIN " +
+          tabla.nombre +
+          " otro ON ...",
+      );
+    }
+
+    if (filas.length * tabla.filas.length > TOPE_COMBINACIONES) {
+      throw new ErrorSQL(
+        "La unión con «" + tabla.nombre + "» compara demasiadas filas de una vez.",
+        union.linea,
+        "Esta práctica corre dentro del navegador: trabaja con menos filas para unirlas.",
+      );
+    }
+
+    const parcial = ambitoUnido([...fuentes, { alias, tabla }], []);
+    const on = traducirExpr(union.on, parcial, union.linea);
+
+    const derecha = prefijar({ alias, tabla });
+    const combinadas: FilaBD[] = [];
+    for (const izq of filas) {
+      for (const der of derecha) {
+        const fila = { ...izq, ...der };
+        if (esVerdad(evaluar(on, fila, parcial.tabla, union.linea) ?? 0)) combinadas.push(fila);
+      }
+    }
+
+    fuentes.push({ alias, tabla });
+    filas = combinadas;
+  }
+
+  return ambitoUnido(fuentes, filas);
+}
+
+/** Reescribe los nombres de columna de una expresion a los del ambito. */
+function traducirExpr(expr: Expr, ambito: Ambito, linea: number): Expr {
+  switch (expr.e) {
+    case "lit":
+      return expr;
+    case "col":
+      return { e: "col", nombre: ambito.resolver(expr.nombre, linea) };
+    case "neg":
+      return { e: "neg", sub: traducirExpr(expr.sub, ambito, linea) };
+    case "no":
+      return { e: "no", sub: traducirExpr(expr.sub, ambito, linea) };
+    case "esNulo":
+      return { ...expr, sub: traducirExpr(expr.sub, ambito, linea) };
+    case "entre":
+      return {
+        ...expr,
+        sub: traducirExpr(expr.sub, ambito, linea),
+        desde: traducirExpr(expr.desde, ambito, linea),
+        hasta: traducirExpr(expr.hasta, ambito, linea),
+      };
+    case "en":
+      return {
+        ...expr,
+        sub: traducirExpr(expr.sub, ambito, linea),
+        lista: expr.lista.map((i) => traducirExpr(i, ambito, linea)),
+      };
+    case "como":
+      return {
+        ...expr,
+        sub: traducirExpr(expr.sub, ambito, linea),
+        patron: traducirExpr(expr.patron, ambito, linea),
+      };
+    case "bin":
+      return {
+        e: "bin",
+        op: expr.op,
+        izq: traducirExpr(expr.izq, ambito, linea),
+        der: traducirExpr(expr.der, ambito, linea),
+      };
+  }
+}
+
 function familiaDe(tipo: string): FamiliaTipo {
   const base = tipo.replace(/\(.*/, "").toUpperCase();
   return TIPOS_ADMITIDOS[base] ?? "texto";
@@ -344,7 +579,9 @@ function esVerdad(valor: ValorSQL): boolean {
 
 function filtrar(tabla: TablaBD, donde: Expr | null, linea: number): FilaBD[] {
   if (!donde) return [...tabla.filas];
-  return tabla.filas.filter((f) => esVerdad(evaluar(donde, f, tabla, linea) ?? 0));
+  // El WHERE puede venir con el nombre de la tabla delante: WHERE dueno.id = 1.
+  const condicion = traducirExpr(donde, ambitoSimple(tabla, null), linea);
+  return tabla.filas.filter((f) => esVerdad(evaluar(condicion, f, tabla, linea) ?? 0));
 }
 
 /** Valor de una expresion suelta, sin fila (los VALUES de un INSERT). */
@@ -1121,9 +1358,13 @@ function insertar(s: Sentencia & { c: "insertar" }, ctx: Contexto): Resultado {
 
 function seleccionar(s: Sentencia & { c: "seleccionar" }, ctx: Contexto): Resultado {
   const base = baseActiva(ctx.estado.servidor, ctx.linea);
-  const tabla = exigirTabla(base, s.tabla, ctx.linea);
+  const ambito = armarOrigen(base, s, ctx.linea);
+  const tabla = ambito.tabla;
 
-  let filas = filtrar(tabla, s.donde, ctx.linea);
+  const donde = s.donde ? traducirExpr(s.donde, ambito, ctx.linea) : null;
+  let filas = donde
+    ? ambito.filas.filter((f) => esVerdad(evaluar(donde, f, tabla, ctx.linea) ?? 0))
+    : [...ambito.filas];
 
   const agregados = s.items.filter((i) => i.s === "agregado");
   if (agregados.length > 0 && agregados.length !== s.items.length) {
@@ -1140,7 +1381,8 @@ function seleccionar(s: Sentencia & { c: "seleccionar" }, ctx: Contexto): Result
     for (const item of agregados) {
       if (item.s !== "agregado") continue;
       columnas.push(item.alias ?? item.fn + "(" + item.arg + ")");
-      valores.push(calcularAgregado(item, tabla, filas, ctx.linea));
+      const arg = item.arg === "*" ? "*" : ambito.resolver(item.arg, ctx.linea);
+      valores.push(calcularAgregado({ ...item, arg }, tabla, filas, ctx.linea));
     }
     ctx.anotar("select_agregado");
     return { clase: "rejilla", columnas, filas: [valores], resumen: "1 fila" };
@@ -1148,7 +1390,7 @@ function seleccionar(s: Sentencia & { c: "seleccionar" }, ctx: Contexto): Result
 
   if (s.orden.length > 0) {
     const criterios = s.orden.map((o) => ({
-      col: exigirColumna(tabla, o.columna, ctx.linea).nombre,
+      col: ambito.resolver(o.columna, ctx.linea),
       desc: o.descendente,
     }));
     filas = [...filas].sort((a, b) => {
@@ -1166,13 +1408,16 @@ function seleccionar(s: Sentencia & { c: "seleccionar" }, ctx: Contexto): Result
     ctx.anotar("select_orden");
   }
 
-  const salida: { titulo: string; columna: string }[] = [];
+  const salida: Salida[] = [];
   for (const item of s.items) {
     if (item.s === "todo") {
-      for (const col of tabla.columnas) salida.push({ titulo: col.nombre, columna: col.nombre });
+      salida.push(...ambito.expandir(item.tabla, ctx.linea));
     } else if (item.s === "col") {
-      const col = exigirColumna(tabla, item.nombre, ctx.linea);
-      salida.push({ titulo: item.alias ?? col.nombre, columna: col.nombre });
+      const columna = ambito.resolver(item.nombre, ctx.linea);
+      // El titulo lleva el prefijo de la tabla solo si el estudiante lo escribio.
+      const escribioPrefijo = partirNombre(item.nombre).calificador !== null;
+      const titulo = escribioPrefijo ? columna : partirNombre(columna).columna;
+      salida.push({ titulo: item.alias ?? titulo, columna });
     }
   }
 
@@ -1192,6 +1437,7 @@ function seleccionar(s: Sentencia & { c: "seleccionar" }, ctx: Contexto): Result
   if (s.limite !== null) matriz = matriz.slice(0, s.limite);
 
   ctx.anotar("select_hecho");
+  if (s.uniones.length > 0) ctx.anotar("select_join");
   if (s.donde) ctx.anotar("select_where");
   if (s.items.some((i) => i.s === "todo")) ctx.anotar("select_todo");
   if (s.items.some((i) => i.s === "col")) ctx.anotar("select_columnas");
@@ -1251,9 +1497,10 @@ function actualizar(s: Sentencia & { c: "actualizar" }, ctx: Contexto): Resultad
   const base = baseActiva(ctx.estado.servidor, ctx.linea);
   const tabla = exigirTabla(base, s.tabla, ctx.linea);
 
+  const ambito = ambitoSimple(tabla, null);
   const asignaciones = s.asignaciones.map((a) => ({
-    col: exigirColumna(tabla, a.columna, ctx.linea),
-    valor: a.valor,
+    col: exigirColumna(tabla, ambito.resolver(a.columna, ctx.linea), ctx.linea),
+    valor: traducirExpr(a.valor, ambito, ctx.linea),
   }));
 
   const afectadas = filtrar(tabla, s.donde, ctx.linea);

@@ -52,12 +52,27 @@ export type Alteracion =
     }
   | { a: "addUnica"; columnas: string[]; linea: number };
 
+/**
+ * Un elemento de la lista del SELECT.
+ *
+ * En `todo`, `tabla` es el prefijo de `tabla.*`; null cuando se escribio `*`
+ * a secas. En `col` y en `arg`, el nombre puede venir calificado
+ * ("dueno.nombre") cuando la consulta une varias tablas.
+ */
 export type ItemSelect =
-  | { s: "todo" }
+  | { s: "todo"; tabla: string | null }
   | { s: "col"; nombre: string; alias: string | null }
   | { s: "agregado"; fn: string; arg: string; alias: string | null };
 
 export type Orden = { columna: string; descendente: boolean };
+
+/** Una tabla mas que entra al SELECT con INNER JOIN ... ON. */
+export type Union = {
+  tabla: string;
+  alias: string | null;
+  on: Expr;
+  linea: number;
+};
 
 export type Sentencia =
   | { c: "crearBase"; nombre: string; siNoExiste: boolean }
@@ -81,6 +96,8 @@ export type Sentencia =
       items: ItemSelect[];
       distinto: boolean;
       tabla: string;
+      alias: string | null;
+      uniones: Union[];
       donde: Expr | null;
       orden: Orden[];
       limite: number | null;
