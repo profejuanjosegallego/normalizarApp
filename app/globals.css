@@ -57,6 +57,32 @@
   }
 }
 
+/* --------------------------------------------------------------------------
+   Editor de SQL: paleta fija oscura. A proposito NO cambia con el tema de la
+   app —un editor de codigo se ve siempre oscuro, como en un IDE—, asi que
+   estos tokens viven aparte y no se redefinen en el modo oscuro de arriba.
+   -------------------------------------------------------------------------- */
+:root {
+  --ed-fondo: #1b1e2b;
+  --ed-fondo-2: #15171f;
+  --ed-borde: #2c3142;
+  --ed-texto: #e7e9f3;
+  --ed-texto-suave: #828bab;
+  --ed-acento: #8aa2ff;
+  /* Selección: banda azul-gris bien visible. Como el texto coloreado se pinta
+     ENCIMA (el <pre> va sobre el textarea), el código se sigue leyendo aunque
+     la banda tenga bastante presencia. */
+  --ed-seleccion: rgba(88, 112, 178, 0.55);
+  --ed-clave: #8aa2ff;
+  --ed-cadena: #7bd88f;
+  --ed-numero: #e6b15a;
+  --ed-comentario: #6b7392;
+  --ed-signo: #a3abc7;
+  --ed-menu: #232838;
+  --ed-menu-activo: #333c59;
+  --ed-error: #ff8a94;
+}
+
 html,
 body {
   background: var(--fondo);
@@ -274,23 +300,24 @@ body {
     border: 0;
     padding: 0.75rem 0.9rem;
     letter-spacing: 0;
+    color: var(--ed-texto);
   }
 
   .sql-cursor {
     background: transparent;
     color: transparent;
-    caret-color: var(--acento);
+    caret-color: var(--ed-acento);
     resize: none;
     outline: none;
   }
 
   .sql-cursor::selection {
-    background: var(--acento-suave);
+    background: var(--ed-seleccion);
   }
 
   .sql-cursor::placeholder {
-    color: var(--texto-suave);
-    opacity: 0.8;
+    color: var(--ed-texto-suave);
+    opacity: 0.9;
   }
 
   .sql-regleta {
@@ -299,30 +326,30 @@ body {
     line-height: 1.65;
     padding: 0.75rem 0.5rem;
     text-align: right;
-    color: var(--texto-suave);
+    color: var(--ed-texto-suave);
     user-select: none;
   }
 
   .sql-clave {
-    color: var(--acento);
+    color: var(--ed-clave);
     font-weight: 700;
   }
 
   .sql-texto {
-    color: var(--ok);
+    color: var(--ed-cadena);
   }
 
   .sql-numero {
-    color: var(--alerta);
+    color: var(--ed-numero);
   }
 
   .sql-comentario {
-    color: var(--texto-suave);
+    color: var(--ed-comentario);
     font-style: italic;
   }
 
   .sql-signo {
-    color: var(--texto-suave);
+    color: var(--ed-signo);
   }
 }
 

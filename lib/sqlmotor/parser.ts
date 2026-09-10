@@ -9,6 +9,7 @@
  */
 
 import type {
+  Alteracion,
   DefColumna,
   Expr,
   ItemSelect,
@@ -565,6 +566,91 @@ function parsearCrearTabla(l: Lector): Sentencia {
   return { c: "crearTabla", nombre, siNoExiste, columnas, restricciones };
 }
 
+/**
+ * ALTER TABLE. Por ahora solo la familia ADD: agregar una columna, una llave
+ * primaria, una llave foránea (el caso típico de "se me olvidó") o UNIQUE. No
+ * se acepta MODIFY / DROP / CHANGE todavía.
+ */
+function parsearAlterar(l: Lector): Sentencia {
+  l.exigir("TABLE", "la palabra TABLE", "Se escribe: ALTER TABLE pedido ADD ...;");
+  const tabla = l.identificador("el nombre de la tabla que vas a modificar");
+  const alteraciones: Alteracion[] = [];
+
+  do {
+    const linea = l.actual().linea;
+    if (!l.aceptar("ADD")) {
+      const tk = l.actual();
+      throw new ErrorSQL(
+        "Después de ALTER TABLE, esta práctica solo permite AÑADIR con ADD.",
+        tk.linea,
+        "Ejemplos:  ALTER TABLE pedido ADD FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente);" +
+          "   ·   ALTER TABLE cliente ADD correo VARCHAR(80);",
+      );
+    }
+
+    // CONSTRAINT nombre: opcional, para nombrar una FK/UNIQUE/PK.
+    let nombreRestriccion = "";
+    if (l.aceptar("CONSTRAINT")) {
+      nombreRestriccion = l.identificador("el nombre de la restricción");
+    }
+
+    if (l.aceptarSecuencia("PRIMARY", "KEY")) {
+      alteraciones.push({
+        a: "addPK",
+        columnas: listaColumnasEntreParentesis(l, "las columnas de la llave primaria"),
+        linea,
+      });
+      continue;
+    }
+
+    if (l.aceptarSecuencia("FOREIGN", "KEY")) {
+      const propias = listaColumnasEntreParentesis(l, "la columna de la llave foránea");
+      l.exigir(
+        "REFERENCES",
+        "la palabra REFERENCES",
+        "Se escribe: FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente)",
+      );
+      const tablaRef = l.identificador("el nombre de la tabla referenciada");
+      const ajenas = listaColumnasEntreParentesis(l, "la columna referenciada");
+      saltarAcciones(l);
+      if (propias.length !== 1 || ajenas.length !== 1) {
+        throw new ErrorSQL(
+          "Por ahora cada llave foránea apunta con una sola columna.",
+          linea,
+          "FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente)",
+        );
+      }
+      alteraciones.push({
+        a: "addFK",
+        nombre: nombreRestriccion,
+        columna: propias[0],
+        tablaRef,
+        columnaRef: ajenas[0],
+        linea,
+      });
+      continue;
+    }
+
+    if (l.aceptar("UNIQUE")) {
+      l.aceptar("KEY");
+      l.aceptar("INDEX");
+      if (!l.ver("(")) l.identificador("el nombre del índice");
+      alteraciones.push({
+        a: "addUnica",
+        columnas: listaColumnasEntreParentesis(l, "las columnas únicas"),
+        linea,
+      });
+      continue;
+    }
+
+    // ADD [COLUMN] <definición de columna>
+    l.aceptar("COLUMN");
+    alteraciones.push({ a: "addColumna", def: parsearDefColumna(l) });
+  } while (l.aceptar(","));
+
+  return { c: "alterar", tabla, alteraciones };
+}
+
 function parsearInsertar(l: Lector): Sentencia {
   l.exigir("INTO", "la palabra INTO", "Se escribe: INSERT INTO cliente (nombre) VALUES ('Ana');");
   const tabla = l.identificador("el nombre de la tabla");
@@ -789,11 +875,13 @@ function parsearSentencia(l: Lector): Sentencia {
     return { c: "eliminar", tabla, donde };
   }
 
-  if (l.ver("ALTER") || l.ver("TRUNCATE")) {
+  if (l.aceptar("ALTER")) return parsearAlterar(l);
+
+  if (l.ver("TRUNCATE")) {
     throw new ErrorSQL(
       t.clave + " todavía no entra en esta práctica.",
       t.linea,
-      "Si te equivocaste al crear una tabla, bórrala con DROP TABLE y créala de nuevo.",
+      "Para vaciar una tabla, bórrala con DROP TABLE y créala de nuevo, o borra sus filas con DELETE.",
     );
   }
 

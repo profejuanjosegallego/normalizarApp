@@ -38,6 +38,18 @@ const FICHAS: Ficha[] = [
       ");",
   },
   {
+    titulo: "Modificar una tabla (ALTER)",
+    nota: "Para arreglar una tabla sin borrarla: sobre todo, la llave foránea que se te olvidó. Solo se puede AÑADIR (ADD).",
+    codigo:
+      "-- La llave foránea olvidada:\n" +
+      "ALTER TABLE pedido\n" +
+      "  ADD FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente);\n\n" +
+      "-- Una columna nueva:\n" +
+      "ALTER TABLE cliente ADD correo VARCHAR(80);\n\n" +
+      "-- Ponerle llave primaria a una tabla que no la tenía:\n" +
+      "ALTER TABLE etiqueta ADD PRIMARY KEY (codigo);",
+  },
+  {
     titulo: "Tipos de dato",
     nota: "El número entre paréntesis del VARCHAR es cuántos caracteres caben.",
     codigo:

@@ -2,12 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import DiagramaER from "@/components/DiagramaER";
 import Chuleta from "@/components/sql/Chuleta";
-import EditorSQL from "@/components/sql/EditorSQL";
+import EditorSQL, { type Identificador } from "@/components/sql/EditorSQL";
 import ExploradorBD from "@/components/sql/ExploradorBD";
 import PanelRetos from "@/components/sql/PanelRetos";
 import ResultadosSQL from "@/components/sql/ResultadosSQL";
 import { BotonCopiar, Dialogo } from "@/components/ui";
+import type { Tabla, TipoTabla } from "@/lib/tipos";
 import {
   cargarEditorSQL,
   cargarEstadoSQL,
@@ -21,7 +23,13 @@ import {
 } from "@/lib/almacenamiento";
 import { aSnake } from "@/lib/ids";
 import { generarSQL } from "@/lib/sql";
-import { ejecutarScript, estadoVacio, type Ejecucion, type Estado } from "@/lib/sqlmotor";
+import {
+  ejecutarScript,
+  estadoVacio,
+  type BaseBD,
+  type Ejecucion,
+  type Estado,
+} from "@/lib/sqlmotor";
 import { retosCumplidos, TOTAL_RETOS } from "@/lib/sqlretos";
 
 type Pestana = "base" | "retos" | "chuleta";
@@ -31,6 +39,77 @@ function nombreDeBase(titulo: string): string {
   const snake = aSnake(titulo);
   if (!snake) return "mi_base";
   return /^[0-9]/.test(snake) ? "bd_" + snake : snake;
+}
+
+/**
+ * Nombres reales que el editor puede autocompletar: bases, y las tablas y
+ * columnas de la base en uso (o de todas si no hay ninguna en uso). Sin
+ * repetidos: gana el primero que aparezca (bases, luego tablas, luego columnas).
+ */
+function construirIdentificadores(estado: Estado): Identificador[] {
+  const vistos = new Map<string, Identificador>();
+  const agregar = (nombre: string, tipo: Identificador["tipo"]) => {
+    const clave = nombre.toLowerCase();
+    if (!vistos.has(clave)) vistos.set(clave, { nombre, tipo });
+  };
+
+  for (const base of estado.servidor.bases) agregar(base.nombre, "base");
+
+  const enUso = estado.servidor.bases.find(
+    (b) => b.nombre.toLowerCase() === estado.servidor.activa?.toLowerCase(),
+  );
+  const bases = enUso ? [enUso] : estado.servidor.bases;
+
+  for (const base of bases) for (const tabla of base.tablas) agregar(tabla.nombre, "tabla");
+  for (const base of bases)
+    for (const tabla of base.tablas)
+      for (const col of tabla.columnas) agregar(col.nombre, "columna");
+
+  return [...vistos.values()];
+}
+
+/**
+ * Traduce las tablas del motor SQL a la forma `Tabla` que dibuja el `DiagramaER`
+ * del taller. Una tabla cuya llave primaria está formada solo por llaves
+ * foráneas (2 o más) se marca como "puente" (tabla de unión); el resto,
+ * "principal". El id de cada tabla es su propio nombre, y así las FK (que
+ * guardan el nombre de la tabla a la que apuntan) enlazan solas en el diagrama.
+ */
+function esquemaDeBase(base: BaseBD): Tabla[] {
+  return base.tablas.map((t): Tabla => {
+    const fks = t.columnas.filter((c) => c.fk);
+    const pkSoloFK =
+      t.pk.length >= 2 &&
+      t.pk.every((p) => t.columnas.some((c) => igualNombre(c.nombre, p) && c.fk));
+    const tipo: TipoTabla = fks.length >= 2 && pkSoloFK ? "puente" : "principal";
+
+    return {
+      id: t.nombre,
+      nombre: t.nombre,
+      tipo,
+      columnas: t.columnas.map((c) => ({
+        id: t.nombre + "." + c.nombre,
+        nombre: c.nombre,
+        tipo: c.tipo,
+        esPK: t.pk.some((p) => igualNombre(p, c.nombre)),
+        autogenerada: c.autoIncrement,
+        esFK: !!c.fk,
+        refTablaId: c.fk ? c.fk.tabla : null,
+        atomicidad: null,
+        notaAtomicidad: "",
+        derivadaDe: null,
+        grupoRepeticion: null,
+        dependencia: null,
+      })),
+      filas: [],
+      nota: "",
+      creadaEn: "3fn",
+    };
+  });
+}
+
+function igualNombre(a: string, b: string): boolean {
+  return a.toLowerCase() === b.toLowerCase();
 }
 
 export default function PracticaSQL() {
@@ -63,6 +142,16 @@ export default function PracticaSQL() {
   }, [texto, listo]);
 
   const cumplidos = useMemo(() => retosCumplidos(estado), [estado]);
+  const identificadores = useMemo(() => construirIdentificadores(estado), [estado]);
+
+  // Esquema para el diagrama: la base en uso, o la única que haya.
+  const esquema = useMemo(() => {
+    const enUso = estado.servidor.bases.find(
+      (b) => b.nombre.toLowerCase() === estado.servidor.activa?.toLowerCase(),
+    );
+    const base = enUso ?? (estado.servidor.bases.length === 1 ? estado.servidor.bases[0] : null);
+    return { nombre: base?.nombre ?? "", modelo: base ? esquemaDeBase(base) : [] };
+  }, [estado]);
 
   const primerFallo = ejecuciones.find((e) => !e.ok);
   const lineaError = primerFallo?.error?.linea ?? null;
@@ -219,6 +308,7 @@ export default function PracticaSQL() {
               onEjecutar={() => ejecutar()}
               areaRef={area}
               lineaError={lineaError}
+              identificadores={identificadores}
               alto="22rem"
             />
 
@@ -247,7 +337,9 @@ export default function PracticaSQL() {
             </div>
 
             <p className="suave mt-2 text-xs leading-relaxed">
-              Si seleccionas un trozo del texto, <strong>Ejecutar</strong> corre solo eso. Cuando
+              Mientras escribes aparecen <strong>sugerencias</strong> con las palabras de SQL y los
+              nombres de tus tablas y columnas: muévete con ↑ ↓ y acepta con Tab o Enter. Si
+              seleccionas un trozo del texto, <strong>Ejecutar</strong> corre solo eso. Cuando
               cambies un <span className="font-mono">CREATE TABLE</span> que ya habías ejecutado,
               usa <strong>Vaciar el servidor</strong> y vuelve a ejecutar el script completo.
             </p>
@@ -308,6 +400,20 @@ export default function PracticaSQL() {
           </section>
         </div>
       </div>
+
+      {esquema.modelo.length > 0 ? (
+        <section className="tarjeta mt-5 p-4">
+          <div className="mb-3">
+            <h2 className="text-base font-bold">Esquema de la base</h2>
+            <p className="suave mt-1 text-xs leading-relaxed">
+              Las tablas de{" "}
+              <span className="font-mono font-semibold">{esquema.nombre}</span> y sus llaves
+              foráneas, dibujadas con lo que ya creaste. La pata de gallo marca el lado “muchos”.
+            </p>
+          </div>
+          <DiagramaER modelo={esquema.modelo} posiciones={{}} altoMaximo="60vh" />
+        </section>
+      ) : null}
 
       <footer className="mt-10 text-center">
         <p className="suave mx-auto max-w-lg text-[0.7rem] leading-relaxed">

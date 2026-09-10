@@ -38,6 +38,20 @@ export type RestriccionTabla =
       linea: number;
     };
 
+/** Una modificación dentro de un ALTER TABLE (solo la familia ADD, por ahora). */
+export type Alteracion =
+  | { a: "addColumna"; def: DefColumna }
+  | { a: "addPK"; columnas: string[]; linea: number }
+  | {
+      a: "addFK";
+      nombre: string;
+      columna: string;
+      tablaRef: string;
+      columnaRef: string;
+      linea: number;
+    }
+  | { a: "addUnica"; columnas: string[]; linea: number };
+
 export type ItemSelect =
   | { s: "todo" }
   | { s: "col"; nombre: string; alias: string | null }
@@ -60,6 +74,7 @@ export type Sentencia =
       restricciones: RestriccionTabla[];
     }
   | { c: "borrarTabla"; tablas: string[]; siExiste: boolean }
+  | { c: "alterar"; tabla: string; alteraciones: Alteracion[] }
   | { c: "insertar"; tabla: string; columnas: string[] | null; filas: Expr[][] }
   | {
       c: "seleccionar";
