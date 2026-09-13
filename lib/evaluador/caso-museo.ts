@@ -294,7 +294,7 @@ export const CASO_MUSEO: Caso = {
       relato:
         "Cuatro sospechosos. El detective quiere saber quién se movió después de la hora de la muerte: la sala es grande y el cuerpo quedó detrás del sarcófago, así que alguien pudo salir sin que los demás lo notaran.",
       tarea:
-        "Muestra id_persona, sala y hora de las entradas de las personas 2, 3, 4 o 7 a partir de las '22:40' (incluida). Usa una lista para las personas.",
+        "Muestra id_persona, sala y hora de las entradas de las personas 2, 3, 4 o 7 a partir de las '22:40' (incluida).",
       herramientas: ["WHERE", "IN", "AND", ">="],
       exige: ["WHERE", "IN", "AND"],
       comprobar: {
@@ -358,9 +358,9 @@ export const CASO_MUSEO: Caso = {
       id: "parentesis",
       titulo: "Dos ciudades, un oficio",
       relato:
-        "La aduana afina el dato: la máscara entró al país por Cartagena y pasó por una tienda de Cali antes de llegar al museo. Solo una anticuaria de cualquiera de esas dos ciudades pudo moverla. Ojo: cuando mezclas OR con AND, los paréntesis deciden qué se evalúa primero.",
+        "La aduana afina el dato: la máscara entró al país por Cartagena y pasó por una tienda de Cali antes de llegar al museo. Solo una anticuaria de cualquiera de esas dos ciudades pudo moverla. Ojo: una condición es «esto o aquello» y la otra es obligatoria; piensa en qué orden se evalúan.",
       tarea:
-        "Muestra nombre completo y ciudad de quienes viven en 'Cartagena' o en 'Cali' y, además, son 'Anticuaria'. Agrupa las dos ciudades entre paréntesis.",
+        "Muestra nombre completo y ciudad de quienes viven en 'Cartagena' o en 'Cali' y, además, son 'Anticuaria'.",
       herramientas: ["WHERE", "OR", "AND", "( )"],
       exige: ["WHERE", "OR", "AND"],
       comprobar: {
@@ -410,7 +410,7 @@ export const CASO_MUSEO: Caso = {
       titulo: "Quién llamó más",
       relato:
         "Once llamadas de cuatro sospechosos es mucho ruido. El detective quiere un solo número por persona: cuántas veces marcó cada una esa noche.",
-      tarea: "Cuenta cuántas llamadas hizo cada persona: muestra id_origen y el total, agrupando por quien llama.",
+      tarea: "Cuenta cuántas llamadas hizo cada persona: muestra id_origen y el total de llamadas de esa persona.",
       herramientas: ["COUNT", "GROUP BY"],
       exige: ["COUNT", "GROUP BY"],
       comprobar: {
@@ -424,7 +424,7 @@ export const CASO_MUSEO: Caso = {
       id: "insistente",
       titulo: "Solo quien insistió",
       relato:
-        "Nueve filas siguen siendo muchas. El detective quiere que la consulta misma se quede solo con quien llamó más de dos veces. Un WHERE no sirve para eso: filtra filas antes de agrupar. Para filtrar grupos ya formados hay otra palabra.",
+        "Nueve filas siguen siendo muchas. El detective quiere que la consulta misma se quede solo con quien llamó más de dos veces. Ojo: el total de llamadas no existe hasta que se agrupa, así que el filtro de siempre no lo ve.",
       tarea:
         "Muestra id_origen y el total de llamadas únicamente de las personas que hicieron más de 2 llamadas.",
       herramientas: ["GROUP BY", "HAVING", "COUNT"],
@@ -473,9 +473,9 @@ export const CASO_MUSEO: Caso = {
       id: "nombres",
       titulo: "Nombres, no números",
       relato:
-        "El detective está harto de los ids: «Yo interrogo personas, no números». Quiere la lista de entradas a la Sala Egipcia, pero con el nombre de cada persona al lado de la hora. Eso vive en dos tablas, así que hay que unirlas.",
+        "El detective está harto de los ids: «Yo interrogo personas, no números». Quiere la lista de entradas a la Sala Egipcia, pero con el nombre de cada persona al lado de la hora. El nombre no está en la tabla acceso.",
       tarea:
-        "Muestra el nombre completo y la hora de cada entrada a la 'Sala Egipcia', uniendo acceso con persona, en orden de hora.",
+        "Muestra el nombre completo y la hora de cada entrada a la 'Sala Egipcia', en orden de hora.",
       herramientas: ["INNER JOIN", "ON", "WHERE", "ORDER BY"],
       exige: ["JOIN", "ON", "ORDER BY"],
       comprobar: {
@@ -491,7 +491,7 @@ export const CASO_MUSEO: Caso = {
       id: "distintas",
       titulo: "Cuántas personas, no cuántas entradas",
       relato:
-        "Trece entradas no son trece personas: el guía entró dos veces, y la perito y el periodista también. Para el informe, el detective necesita el número de personas distintas que pisaron la sala.",
+        "Trece entradas no son trece personas: el guía entró dos veces, y la perito y el periodista también. Para el informe, el detective necesita cuántas personas diferentes pisaron la sala, sin contar dos veces a nadie.",
       tarea: "Cuenta cuántas personas distintas entraron a la 'Sala Egipcia' durante la noche.",
       herramientas: ["COUNT", "DISTINCT", "WHERE"],
       exige: ["COUNT", "DISTINCT"],
@@ -508,7 +508,7 @@ export const CASO_MUSEO: Caso = {
       relato:
         "Última comprobación. En pieza, id_vendedor dice quién le vendió cada objeto al museo, y autenticada dice si un perito lo confirmó. El detective quiere ver, con nombre y apellido, quién vendió las piezas que nunca se autenticaron.",
       tarea:
-        "Muestra el nombre de la pieza y el nombre completo de quien la vendió, solo para las piezas cuya autenticada sea 'no'. Une pieza con persona.",
+        "Muestra el nombre de la pieza y el nombre completo de quien la vendió, solo para las piezas cuya autenticada sea 'no'.",
       herramientas: ["INNER JOIN", "ON", "WHERE"],
       exige: ["JOIN", "ON", "WHERE"],
       comprobar: {

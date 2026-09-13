@@ -291,7 +291,7 @@ export const CASO_CONCIERTO: Caso = {
       relato:
         "El veneno estaba en la botella de agua. Daniel solo tomaba de la que el técnico de sonido le dejaba en el camerino antes de cada show. Alguien tuvo que saber eso. El chat de la gira está en la tabla mensaje.",
       tarea:
-        "Muestra id_emisor, id_receptor y texto de los mensajes en cuyo texto aparezca la palabra botella, en cualquier posición.",
+        "Muestra id_emisor, id_receptor y texto de los mensajes en cuyo texto aparezca la palabra botella.",
       herramientas: ["WHERE", "LIKE"],
       exige: ["WHERE", "LIKE"],
       comprobar: {
@@ -308,7 +308,7 @@ export const CASO_CONCIERTO: Caso = {
       relato:
         "Tres personas entraron al camerino en la hora de la muerte: la 2, la 3 y la 5. El detective quiere leer exactamente lo que cada una le escribió a Daniel esa noche.",
       tarea:
-        "Muestra id_emisor, hora y texto de los mensajes enviados por las personas 2, 3 o 5 cuyo receptor sea la persona 1. Usa una lista para los emisores.",
+        "Muestra id_emisor, hora y texto de los mensajes enviados por las personas 2, 3 o 5 cuyo receptor sea la persona 1.",
       herramientas: ["WHERE", "IN", "AND"],
       exige: ["WHERE", "IN", "AND"],
       comprobar: {
@@ -340,9 +340,9 @@ export const CASO_CONCIERTO: Caso = {
       id: "parentesis",
       titulo: "Cafetería y camerino",
       relato:
-        "La botella del camerino era de la cafetería. Quien la cambió tuvo que pasar por la cafetería y después por el camerino, ya entrada la noche. Ojo al mezclar OR con AND: sin paréntesis, el AND se pega solo a la última condición.",
+        "La botella del camerino era de la cafetería. Quien la cambió tuvo que pasar por la cafetería y después por el camerino, ya entrada la noche. Ojo: una condición es «esto o aquello» y la otra es obligatoria; piensa en qué orden se evalúan.",
       tarea:
-        "Muestra id_persona, puerta y hora de las pasadas por la puerta 'Camerino' o por la puerta 'Cafetería' ocurridas a partir de las '22:00' (incluida). Agrupa las dos puertas entre paréntesis.",
+        "Muestra id_persona, puerta y hora de las pasadas por la puerta 'Camerino' o por la puerta 'Cafetería' ocurridas a partir de las '22:00' (incluida).",
       herramientas: ["WHERE", "OR", "AND", "( )", ">="],
       exige: ["WHERE", "OR", "AND"],
       comprobar: {
@@ -408,7 +408,7 @@ export const CASO_CONCIERTO: Caso = {
       relato:
         "La botella del camerino no era la de Bruno: era una de la cafetería, de la misma marca. Alguien compró agua esa noche para cambiarla. Las ventas están en la tabla compra.",
       tarea:
-        "Cuenta cuántas compras del producto 'Agua' hizo cada persona: muestra id_persona y el total de compras, agrupando por persona.",
+        "Cuenta cuántas compras del producto 'Agua' hizo cada persona: muestra id_persona y el total de compras de esa persona.",
       herramientas: ["COUNT", "GROUP BY", "WHERE"],
       exige: ["COUNT", "GROUP BY", "WHERE"],
       comprobar: {
@@ -424,7 +424,7 @@ export const CASO_CONCIERTO: Caso = {
       titulo: "Cuánto gastó cada uno",
       relato:
         "El detective quiere ver el gasto completo de la noche por persona, no solo el agua. La columna total ya trae el valor de cada compra; falta sumarlo por persona.",
-      tarea: "Muestra id_persona y la suma de total de todas sus compras, agrupando por persona.",
+      tarea: "Muestra id_persona y la suma de total de todas las compras de esa persona.",
       herramientas: ["SUM", "GROUP BY"],
       exige: ["SUM", "GROUP BY"],
       comprobar: {
@@ -438,7 +438,7 @@ export const CASO_CONCIERTO: Caso = {
       id: "charlatanes",
       titulo: "Quién escribió más",
       relato:
-        "Veintidós mensajes en una noche. El detective quiere saber quién no soltó el celular, pero solo le interesa quien pasó de tres mensajes. Un WHERE no filtra grupos: para eso hay otra palabra.",
+        "Veintidós mensajes en una noche. El detective quiere saber quién no soltó el celular, pero solo le interesa quien pasó de tres mensajes. Ojo: el total de mensajes no existe hasta que se agrupa, así que el filtro de siempre no lo ve.",
       tarea:
         "Muestra id_emisor y el total de mensajes únicamente de las personas que enviaron más de 3 mensajes.",
       herramientas: ["COUNT", "GROUP BY", "HAVING"],
@@ -471,9 +471,9 @@ export const CASO_CONCIERTO: Caso = {
       id: "puerta",
       titulo: "El camerino, con nombres",
       relato:
-        "«Deje de hablarme de números», dice el detective. Quiere la lista completa de pasadas por el camerino, pero con el nombre y el apellido de cada persona junto a la hora. Eso está en dos tablas: hay que unirlas.",
+        "«Deje de hablarme de números», dice el detective. Quiere la lista completa de pasadas por el camerino, pero con el nombre y el apellido de cada persona junto a la hora. El nombre no está en la tabla ingreso.",
       tarea:
-        "Muestra nombre, apellido y hora de cada pasada por la puerta 'Camerino', uniendo ingreso con persona, en orden de hora.",
+        "Muestra nombre, apellido y hora de cada pasada por la puerta 'Camerino', en orden de hora.",
       herramientas: ["INNER JOIN", "ON", "WHERE", "ORDER BY"],
       exige: ["JOIN", "ON", "ORDER BY"],
       comprobar: {
@@ -489,7 +489,7 @@ export const CASO_CONCIERTO: Caso = {
       id: "ciudades",
       titulo: "Cuántas ciudades",
       relato:
-        "Doce conciertos no son doce ciudades: Bogotá tuvo tres y Medellín y Cali dos cada una. Para el informe hace falta el número de ciudades distintas que recorrió la gira.",
+        "Doce conciertos no son doce ciudades: Bogotá tuvo tres y Medellín y Cali dos cada una. Para el informe hace falta cuántas ciudades diferentes recorrió la gira, sin contar dos veces ninguna.",
       tarea: "Cuenta cuántas ciudades distintas aparecen en la tabla presentacion.",
       herramientas: ["COUNT", "DISTINCT"],
       exige: ["COUNT", "DISTINCT"],
@@ -506,7 +506,7 @@ export const CASO_CONCIERTO: Caso = {
       relato:
         "Última lectura antes de acusar. El detective quiere todos los mensajes que recibió Daniel esa noche, pero con el nombre de quien los envió, no con su número.",
       tarea:
-        "Muestra el nombre del emisor, la hora y el texto de los mensajes cuyo receptor sea la persona 1. Une mensaje con persona por el emisor.",
+        "Muestra el nombre del emisor, la hora y el texto de los mensajes cuyo receptor sea la persona 1.",
       herramientas: ["INNER JOIN", "ON", "WHERE"],
       exige: ["JOIN", "ON", "WHERE"],
       comprobar: {

@@ -292,7 +292,7 @@ export const CASO_RESTAURANTE: Caso = {
       relato:
         "Cuatro sospechosos. El detective quiere ver a dónde fueron después de las diez de la noche.",
       tarea:
-        "Muestra id_persona, lugar y hora de los movimientos de las personas 2, 3, 5 u 8 a partir de las '22:00' (incluida). Usa una lista para las personas.",
+        "Muestra id_persona, lugar y hora de los movimientos de las personas 2, 3, 5 u 8 a partir de las '22:00' (incluida).",
       herramientas: ["WHERE", "IN", "AND", ">="],
       exige: ["WHERE", "IN", "AND"],
       comprobar: {
@@ -309,7 +309,7 @@ export const CASO_RESTAURANTE: Caso = {
       relato:
         "El crítico iba a publicar algo al día siguiente. El chat del personal está en la tabla mensaje; busca lo que se dijo sobre la reseña.",
       tarea:
-        "Muestra id_emisor, id_receptor y texto de los mensajes en cuyo texto aparezca la palabra reseña, en cualquier posición.",
+        "Muestra id_emisor, id_receptor y texto de los mensajes en cuyo texto aparezca la palabra reseña.",
       herramientas: ["WHERE", "LIKE"],
       exige: ["WHERE", "LIKE"],
       comprobar: {
@@ -340,9 +340,9 @@ export const CASO_RESTAURANTE: Caso = {
       id: "parentesis",
       titulo: "Cocina o bodega",
       relato:
-        "El extracto se guardó en la bodega y terminó en la cocina. Quien lo movió pasó por los dos sitios ya entrada la noche. Ojo al mezclar OR con AND: sin paréntesis, el AND se pega solo a la última condición.",
+        "El extracto se guardó en la bodega y terminó en la cocina. Quien lo movió pasó por los dos sitios ya entrada la noche. Ojo: una condición es «esto o aquello» y la otra es obligatoria; piensa en qué orden se evalúan.",
       tarea:
-        "Muestra id_persona, lugar y hora de las pasadas por la 'Cocina' o por la 'Bodega' ocurridas a partir de las '21:00' (incluida). Agrupa los dos lugares entre paréntesis.",
+        "Muestra id_persona, lugar y hora de las pasadas por la 'Cocina' o por la 'Bodega' ocurridas a partir de las '21:00' (incluida).",
       herramientas: ["WHERE", "OR", "AND", "( )", ">="],
       exige: ["WHERE", "OR", "AND"],
       comprobar: {
@@ -375,7 +375,7 @@ export const CASO_RESTAURANTE: Caso = {
       titulo: "Cuántos pedidos hizo cada uno",
       relato:
         "Treinta pedidos es mucho ruido. El detective quiere un solo número por persona.",
-      tarea: "Cuenta cuántos pedidos hizo cada persona: muestra id_persona y el total, agrupando por persona.",
+      tarea: "Cuenta cuántos pedidos hizo cada persona: muestra id_persona y el total de pedidos de esa persona.",
       herramientas: ["COUNT", "GROUP BY"],
       exige: ["COUNT", "GROUP BY"],
       comprobar: {
@@ -389,7 +389,7 @@ export const CASO_RESTAURANTE: Caso = {
       id: "insistente",
       titulo: "Quién entró más a la cocina",
       relato:
-        "El detective quiere que la consulta misma se quede solo con quien entró a la cocina al menos dos veces. Un WHERE filtra filas antes de agrupar; para filtrar grupos ya formados hay otra palabra.",
+        "El detective quiere que la consulta misma se quede solo con quien entró a la cocina al menos dos veces. Ojo: el total de entradas no existe hasta que se agrupa, así que el filtro de siempre no lo ve.",
       tarea:
         "Muestra id_persona y el total de entradas a la 'Cocina' únicamente de las personas con 2 o más entradas.",
       herramientas: ["WHERE", "GROUP BY", "HAVING", "COUNT"],
@@ -436,9 +436,9 @@ export const CASO_RESTAURANTE: Caso = {
       id: "almendra",
       titulo: "Quién compró la almendra",
       relato:
-        "Última lectura. El detective quiere, con nombre y apellido, quién compró cada insumo que tenga que ver con almendras. Eso está en dos tablas: hay que unirlas.",
+        "Última lectura. El detective quiere, con nombre y apellido, quién compró cada insumo que tenga que ver con almendras. El nombre no está en la tabla insumo.",
       tarea:
-        "Muestra nombre, apellido y producto de las compras cuyo producto contenga la palabra almendra. Une insumo con persona.",
+        "Muestra nombre, apellido y producto de las compras cuyo producto contenga la palabra almendra.",
       herramientas: ["INNER JOIN", "ON", "WHERE", "LIKE"],
       exige: ["JOIN", "ON", "LIKE"],
       comprobar: {
@@ -453,7 +453,7 @@ export const CASO_RESTAURANTE: Caso = {
       id: "distintos",
       titulo: "Cuántas personas distintas pidieron",
       relato:
-        "Treinta pedidos no son treinta comensales. Para el informe hace falta el número de personas distintas que pidieron algo.",
+        "Treinta pedidos no son treinta comensales. Para el informe hace falta cuántas personas diferentes pidieron algo, sin contar dos veces a nadie.",
       tarea: "Cuenta cuántas personas distintas aparecen en la tabla pedido.",
       herramientas: ["COUNT", "DISTINCT"],
       exige: ["COUNT", "DISTINCT"],

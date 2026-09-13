@@ -427,7 +427,8 @@ function Investigacion({ caso, pruebaInicial }: { caso: Caso; pruebaInicial: Pru
               </button>
             </>
           ) : null}
-          <Musica />
+          {/* A partir de la sexta pista cambia la cancion: la investigacion se pone seria. */}
+          <Musica tema={avance.resueltas.length >= 5 ? "tema2" : "tema"} />
           {corriendo ? (
             <button
               type="button"
@@ -515,15 +516,6 @@ function Investigacion({ caso, pruebaInicial }: { caso: Caso; pruebaInicial: Pru
                       <IconoLupa />
                       Pista {indiceActual + 1} de {totalPistas}
                     </p>
-                    {pistaActual.herramientas.length > 0 ? (
-                      <div className="flex flex-wrap gap-1.5">
-                        {pistaActual.herramientas.map((h) => (
-                          <span key={h} className="chip font-mono">
-                            {h}
-                          </span>
-                        ))}
-                      </div>
-                    ) : null}
                   </div>
                   <h2 className="mt-2 text-xl font-bold">{pistaActual.titulo}</h2>
                   {indiceActual === 0 ? (
@@ -538,6 +530,26 @@ function Investigacion({ caso, pruebaInicial }: { caso: Caso; pruebaInicial: Pru
                       Tu tarea
                     </p>
                     <p className="mt-1 text-sm font-semibold leading-relaxed">{pistaActual.tarea}</p>
+                    {!esFinal ? (
+                      <p className="suave mt-2 text-xs leading-relaxed">
+                        ¿Qué palabras reservadas de SQL necesitas para esto? Decídelo antes de
+                        escribir: cada ejecución que no resuelve la pista cuenta.
+                      </p>
+                    ) : null}
+                    {libre && pistaActual.herramientas.length > 0 ? (
+                      <details className="mt-2">
+                        <summary className="suave cursor-pointer text-xs">
+                          Ver las herramientas (solo en la práctica)
+                        </summary>
+                        <div className="mt-1.5 flex flex-wrap gap-1.5">
+                          {pistaActual.herramientas.map((h) => (
+                            <span key={h} className="chip font-mono">
+                              {h}
+                            </span>
+                          ))}
+                        </div>
+                      </details>
+                    ) : null}
                   </div>
 
                   {aviso ? (
