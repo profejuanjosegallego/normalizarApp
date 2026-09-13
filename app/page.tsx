@@ -374,10 +374,39 @@ export default function Inicio() {
           </div>
         </section>
 
+        {/* Cierre del curso: dos casos de detectives que se resuelven con SQL. */}
+        <section
+          className="tarjeta aparece mt-5 p-6"
+          style={{ animationDelay: "340ms" }}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="min-w-[16rem] flex-1">
+              <p className="titulo-seccion">Cierre del curso</p>
+              <h2 className="mt-1 text-xl font-bold">Evaluador final</h2>
+              <p className="suave mt-2 max-w-lg text-sm leading-relaxed">
+                Tres asesinatos y tres bases de datos con cerca de cien registros cada una: un
+                caso de práctica, siempre abierto, y dos de examen. El detective te va dando
+                pistas; tú le respondes con consultas: filtrar, ordenar, contar, agrupar. Al
+                final acusas a alguien y entregas el informe.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {["WHERE", "BETWEEN", "IN", "LIKE", "ORDER BY", "GROUP BY"].map((s) => (
+                  <span key={s} className="chip font-mono">
+                    {s}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <Link href="/evaluador" className="btn btn-primario px-6 py-3">
+              Resolver los casos
+            </Link>
+          </div>
+        </section>
+
         {guardados.length > 0 ? (
           <section
             className="tarjeta aparece mt-5 p-6"
-            style={{ animationDelay: "360ms" }}
+            style={{ animationDelay: "400ms" }}
           >
             <h2 className="text-base font-bold">Tu trabajo guardado en este navegador</h2>
             <ul className="mt-4 space-y-2">

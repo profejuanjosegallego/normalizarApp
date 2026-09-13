@@ -1,3 +1,5 @@
+import { avanceVacio, type Avance } from "./evaluador/tipos";
+import type { Convocatoria, Prueba } from "./evaluador/prueba";
 import type { Estado } from "./sqlmotor";
 import type { Ejercicio, Trabajo } from "./tipos";
 
@@ -209,6 +211,171 @@ export function olvidarSQL(): void {
   if (!disponible()) return;
   localStorage.removeItem(SQL_ESTADO);
   localStorage.removeItem(SQL_EDITOR);
+}
+
+/* --------------------------------------------------------------------------
+ * Evaluador final
+ *
+ * Cada caso tiene su propio servidor, su editor y su avance, separados de la
+ * practica de SQL para que resolver un caso no toque lo que el estudiante
+ * tenia armado en /sql (ni al reves).
+ * ----------------------------------------------------------------------- */
+
+const EVALUADOR = "bdnorm:evaluador:";
+
+export function guardarEstadoCaso(casoId: string, estado: Estado): void {
+  if (!disponible()) return;
+  try {
+    localStorage.setItem(EVALUADOR + casoId + ":estado", JSON.stringify(estado));
+  } catch {
+    // Cuota llena: sigue funcionando en esta sesion.
+  }
+}
+
+export function cargarEstadoCaso(casoId: string): Estado | null {
+  if (!disponible()) return null;
+  try {
+    const crudo = localStorage.getItem(EVALUADOR + casoId + ":estado");
+    if (!crudo) return null;
+    const dato = JSON.parse(crudo) as Estado;
+    if (!dato || !dato.servidor || !Array.isArray(dato.servidor.bases)) return null;
+    return { servidor: dato.servidor, logros: Array.isArray(dato.logros) ? dato.logros : [] };
+  } catch {
+    return null;
+  }
+}
+
+export function guardarEditorCaso(casoId: string, texto: string): void {
+  if (!disponible()) return;
+  try {
+    localStorage.setItem(EVALUADOR + casoId + ":editor", texto);
+  } catch {
+    // sin efecto
+  }
+}
+
+export function cargarEditorCaso(casoId: string): string {
+  if (!disponible()) return "";
+  return localStorage.getItem(EVALUADOR + casoId + ":editor") ?? "";
+}
+
+export function guardarAvanceCaso(avance: Avance): void {
+  if (!disponible()) return;
+  try {
+    localStorage.setItem(EVALUADOR + avance.casoId + ":avance", JSON.stringify(avance));
+  } catch {
+    // sin efecto
+  }
+}
+
+export function cargarAvanceCaso(casoId: string): Avance | null {
+  if (!disponible()) return null;
+  try {
+    const crudo = localStorage.getItem(EVALUADOR + casoId + ":avance");
+    if (!crudo) return null;
+    const dato = JSON.parse(crudo) as Partial<Avance> & { estudiante?: string };
+    if (!dato || !Array.isArray(dato.resueltas)) return null;
+    const base = avanceVacio(casoId, typeof dato.pruebaCodigo === "string" ? dato.pruebaCodigo : "");
+    const integrantes = Array.isArray(dato.integrantes)
+      ? dato.integrantes.map((i) => ({
+          nombre: typeof i?.nombre === "string" ? i.nombre : "",
+          documento: typeof i?.documento === "string" ? i.documento : "",
+        }))
+      : [];
+    // Avances de la version 1 traian un solo nombre suelto.
+    if (integrantes.length === 0 && typeof dato.estudiante === "string") {
+      integrantes.push({ nombre: dato.estudiante, documento: "" });
+    }
+    while (integrantes.length < 2) integrantes.push({ nombre: "", documento: "" });
+    return {
+      ...base,
+      integrantes: integrantes.slice(0, 2),
+      inicio: typeof dato.inicio === "string" ? dato.inicio : null,
+      resueltas: dato.resueltas,
+      intentosFallidos: Number(dato.intentosFallidos) || 0,
+      intentosCulpable: Number(dato.intentosCulpable) || 0,
+      reinicios: Number(dato.reinicios) || 0,
+      cerrado: typeof dato.cerrado === "string" ? dato.cerrado : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Borra el servidor, el editor y el avance de un caso: empezar de cero. */
+export function olvidarCaso(casoId: string): void {
+  if (!disponible()) return;
+  for (const sufijo of [":estado", ":editor", ":avance"]) {
+    localStorage.removeItem(EVALUADOR + casoId + sufijo);
+  }
+}
+
+/* Prueba habilitada por el docente, del lado del estudiante. */
+
+export function guardarPrueba(prueba: Prueba): void {
+  if (!disponible()) return;
+  try {
+    localStorage.setItem(EVALUADOR + "prueba", JSON.stringify(prueba));
+  } catch {
+    // sin efecto
+  }
+}
+
+export function cargarPrueba(): Prueba | null {
+  if (!disponible()) return null;
+  try {
+    const crudo = localStorage.getItem(EVALUADOR + "prueba");
+    if (!crudo) return null;
+    const dato = JSON.parse(crudo) as Prueba;
+    if (!dato || typeof dato.codigo !== "string" || !dato.config) return null;
+    return dato;
+  } catch {
+    return null;
+  }
+}
+
+export function olvidarPrueba(): void {
+  if (!disponible()) return;
+  localStorage.removeItem(EVALUADOR + "prueba");
+}
+
+/* Convocatorias del docente: codigo + clave de edicion, como las publicaciones. */
+
+const CONVOCATORIAS = "bdnorm:docente:pruebas";
+
+export function listarConvocatorias(): Convocatoria[] {
+  if (!disponible()) return [];
+  try {
+    const crudo = localStorage.getItem(CONVOCATORIAS);
+    const lista = crudo ? (JSON.parse(crudo) as Convocatoria[]) : [];
+    return Array.isArray(lista) ? lista : [];
+  } catch {
+    return [];
+  }
+}
+
+export function guardarConvocatorias(lista: Convocatoria[]): void {
+  if (!disponible()) return;
+  try {
+    localStorage.setItem(CONVOCATORIAS, JSON.stringify(lista));
+  } catch {
+    // sin efecto
+  }
+}
+
+/** Preferencia de musica del evaluador (encendida o no). */
+export function cargarMusica(): boolean {
+  if (!disponible()) return false;
+  return localStorage.getItem(EVALUADOR + "musica") === "1";
+}
+
+export function guardarMusica(encendida: boolean): void {
+  if (!disponible()) return;
+  try {
+    localStorage.setItem(EVALUADOR + "musica", encendida ? "1" : "0");
+  } catch {
+    // sin efecto
+  }
 }
 
 export function descargarJSON(nombreArchivo: string, dato: unknown): void {

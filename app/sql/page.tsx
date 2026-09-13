@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import DiagramaER from "@/components/DiagramaER";
 import Chuleta from "@/components/sql/Chuleta";
-import EditorSQL, { type Identificador } from "@/components/sql/EditorSQL";
+import EditorSQL, { construirIdentificadores } from "@/components/sql/EditorSQL";
 import ExploradorBD from "@/components/sql/ExploradorBD";
 import PanelRetos from "@/components/sql/PanelRetos";
 import ResultadosSQL from "@/components/sql/ResultadosSQL";
@@ -39,33 +39,6 @@ function nombreDeBase(titulo: string): string {
   const snake = aSnake(titulo);
   if (!snake) return "mi_base";
   return /^[0-9]/.test(snake) ? "bd_" + snake : snake;
-}
-
-/**
- * Nombres reales que el editor puede autocompletar: bases, y las tablas y
- * columnas de la base en uso (o de todas si no hay ninguna en uso). Sin
- * repetidos: gana el primero que aparezca (bases, luego tablas, luego columnas).
- */
-function construirIdentificadores(estado: Estado): Identificador[] {
-  const vistos = new Map<string, Identificador>();
-  const agregar = (nombre: string, tipo: Identificador["tipo"]) => {
-    const clave = nombre.toLowerCase();
-    if (!vistos.has(clave)) vistos.set(clave, { nombre, tipo });
-  };
-
-  for (const base of estado.servidor.bases) agregar(base.nombre, "base");
-
-  const enUso = estado.servidor.bases.find(
-    (b) => b.nombre.toLowerCase() === estado.servidor.activa?.toLowerCase(),
-  );
-  const bases = enUso ? [enUso] : estado.servidor.bases;
-
-  for (const base of bases) for (const tabla of base.tablas) agregar(tabla.nombre, "tabla");
-  for (const base of bases)
-    for (const tabla of base.tablas)
-      for (const col of tabla.columnas) agregar(col.nombre, "columna");
-
-  return [...vistos.values()];
 }
 
 /**

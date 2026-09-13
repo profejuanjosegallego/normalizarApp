@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import PanelPruebas from "@/components/evaluador/PanelPruebas";
 import { Area, Aviso, BotonCopiar, Campo, Dialogo, Seccion } from "@/components/ui";
 import {
   cargarBorradorDocente,
@@ -515,6 +516,13 @@ export default function PaginaProfesor() {
             ) : null}
           </Seccion>
         ) : null}
+
+        <Seccion
+          titulo="Evaluador final"
+          descripcion="Los dos casos de detectives no arrancan hasta que habilites una prueba. Aquí fijas el tiempo por caso y cómo se descuentan los intentos; el código que sale es el que dictas en clase."
+        >
+          <PanelPruebas />
+        </Seccion>
       </div>
 
       <Dialogo

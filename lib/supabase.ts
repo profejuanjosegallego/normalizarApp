@@ -1,4 +1,4 @@
-import type { Ejercicio } from "./tipos";
+import type { ConfigPrueba, Ejercicio } from "./tipos";
 
 /**
  * Acceso a Supabase para publicar y abrir ejercicios por codigo.
@@ -126,4 +126,47 @@ export async function obtenerEjercicio(codigo: string): Promise<Ejercicio | null
   const datos = await rpc<Ejercicio | null>("norm_obtener", { p_codigo: codigo });
   if (!datos || typeof datos.enunciado !== "string") return null;
   return datos;
+}
+
+/* --------------------------------------------------------------------------
+ * Pruebas del evaluador final
+ *
+ * Reutilizan las mismas funciones: una prueba se publica como un `Ejercicio`
+ * que lleva el campo `evaluador`. Asi el docente habilita y cierra la prueba
+ * sin tocar el esquema de Supabase.
+ * ----------------------------------------------------------------------- */
+
+export type PruebaPublicada = { codigo: string; claveEdicion: string };
+
+export async function publicarPrueba(ejercicio: Ejercicio): Promise<PruebaPublicada> {
+  if (!ejercicio.evaluador) throw new ErrorBackend("La prueba no trae configuración.");
+  return publicarEjercicio(ejercicio);
+}
+
+export async function actualizarPrueba(
+  codigo: string,
+  claveEdicion: string,
+  ejercicio: Ejercicio,
+): Promise<void> {
+  if (!ejercicio.evaluador) throw new ErrorBackend("La prueba no trae configuración.");
+  const ok = await rpc<boolean>("norm_actualizar", {
+    p_codigo: codigo,
+    p_clave: claveEdicion,
+    p_datos: ejercicio,
+  });
+  if (!ok) {
+    throw new ErrorBackend(
+      "No se pudo cambiar la prueba: este navegador ya no tiene la clave de ese código. Habilita una prueba nueva.",
+    );
+  }
+}
+
+/**
+ * Devuelve la configuracion de la prueba, o `null` si el codigo no existe o
+ * no corresponde a una prueba (por ejemplo, es el codigo de un ejercicio).
+ */
+export async function obtenerPrueba(codigo: string): Promise<ConfigPrueba | null> {
+  const datos = await rpc<Ejercicio | null>("norm_obtener", { p_codigo: codigo });
+  if (!datos || !datos.evaluador || typeof datos.evaluador !== "object") return null;
+  return datos.evaluador;
 }

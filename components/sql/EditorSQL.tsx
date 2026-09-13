@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { Estado } from "@/lib/sqlmotor";
 
 /**
  * Editor de SQL con regleta de lineas, coloreado y autocompletado.
@@ -102,6 +103,33 @@ function calcularSugerencias(prefijo: string, identificadores: Identificador[]):
     .map((k) => ({ texto: k, clase: "palabra" as const }));
 
   return [...nombres, ...claves].slice(0, MAX_SUGERENCIAS);
+}
+
+/**
+ * Nombres reales que el editor puede autocompletar: bases, y las tablas y
+ * columnas de la base en uso (o de todas si no hay ninguna en uso). Sin
+ * repetidos: gana el primero que aparezca (bases, luego tablas, luego columnas).
+ */
+export function construirIdentificadores(estado: Estado): Identificador[] {
+  const vistos = new Map<string, Identificador>();
+  const agregar = (nombre: string, tipo: Identificador["tipo"]) => {
+    const clave = nombre.toLowerCase();
+    if (!vistos.has(clave)) vistos.set(clave, { nombre, tipo });
+  };
+
+  for (const base of estado.servidor.bases) agregar(base.nombre, "base");
+
+  const enUso = estado.servidor.bases.find(
+    (b) => b.nombre.toLowerCase() === estado.servidor.activa?.toLowerCase(),
+  );
+  const bases = enUso ? [enUso] : estado.servidor.bases;
+
+  for (const base of bases) for (const tabla of base.tablas) agregar(tabla.nombre, "tabla");
+  for (const base of bases)
+    for (const tabla of base.tablas)
+      for (const col of tabla.columnas) agregar(col.nombre, "columna");
+
+  return [...vistos.values()];
 }
 
 export default function EditorSQL({

@@ -23,6 +23,26 @@ export type Ejercicio = {
   /** ISO yyyy-mm-dd o cadena vacia. */
   fechaEntrega: string;
   creado: string;
+  /**
+   * Presente solo en los "ejercicios" que en realidad son una prueba del
+   * evaluador final: reutilizan el mismo codigo corto y las mismas funciones
+   * del servidor. Ver lib/evaluador/prueba.ts.
+   */
+  evaluador?: ConfigPrueba;
+};
+
+/** Reglas de una prueba del evaluador final, las fija el docente al habilitarla. */
+export type ConfigPrueba = {
+  /** Tiempo por caso, en minutos. Arranca cuando la pareja pulsa "Empezar". */
+  minutos: number;
+  /** Decimas que se restan por cada intento fallido que pase de los libres. */
+  descuento: number;
+  /** Intentos fallidos que no descuentan, por caso. */
+  intentosLibres: number;
+  /** Mientras este en false, nadie puede empezar un caso con este codigo. */
+  abierta: boolean;
+  /** Etiqueta libre: grupo, jornada, semestre. */
+  grupo: string;
 };
 
 export type Atomicidad = "atomico" | "no-atomico";

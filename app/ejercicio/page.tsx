@@ -91,6 +91,11 @@ export default function PaginaEjercicio() {
             });
             return;
           }
+          // El codigo era de una prueba del evaluador final: va a su seccion.
+          if (ejercicio.evaluador) {
+            window.location.replace(`/evaluador?c=${codigo}`);
+            return;
+          }
           preparar(ejercicio);
         })
         .catch((e: unknown) => {
